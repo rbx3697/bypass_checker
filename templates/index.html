@@ -1,33 +1,55 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div>
-    <h2>Добро пожаловать!</h2>
-    <p>Ваш ID: <strong>{{ user_id[:8] }}...</strong></p>
+<div class="card">
+    <h1 class="neon-text">🐱 Добро пожаловать в MeowTool Web!</h1>
+    <p>Автоматический вход выполнен. Ваш ID: <strong>{{ user_id[:8] }}...</strong></p>
     
-    <div>
-        <h3>Доступные функции:</h3>
-        <ul>
-            <li><a href="/checker">🔍 Чекер аккаунтов</a></li>
-            <li><a href="/bypass">🔓 Bypass системы</a></li>
-            <li><a href="/dashboard">📊 Личный кабинет</a></li>
-        </ul>
-    </div>
-    
-    <div>
-        <h3>Статистика:</h3>
-        <p>Онлайн пользователей: <span id="online-users">0</span></p>
-        <p>Всего проверок: <span id="total-checks">0</span></p>
+    <div class="features-grid">
+        <div class="feature-card">
+            <h3>🔍 Чекер аккаунтов</h3>
+            <p>Массовая проверка Roblox аккаунтов на валидность, баланс и статус</p>
+            <a href="/checker" class="neon-button">Перейти к чекеру</a>
+        </div>
+        
+        <div class="feature-card">
+            <h3>🔓 Bypass системы</h3>
+            <p>Обход ограничений для аккаунтов 13- и 13-17 лет</p>
+            <a href="/bypass" class="neon-button">Перейти к bypass</a>
+        </div>
+        
+        <div class="feature-card">
+            <h3>📊 Личный кабинет</h3>
+            <p>Ваша статистика, история проверок и операций</p>
+            <a href="/dashboard" class="neon-button">Перейти в кабинет</a>
+        </div>
     </div>
 </div>
 
-<script>
-// Простая проверка работы
-fetch('/api/stats')
-    .then(response => response.json())
-    .then(data => {
-        document.getElementById('online-users').textContent = data.online_users;
-        document.getElementById('total-checks').textContent = data.total_checks;
-    });
-</script>
+<div class="card">
+    <h2>📈 Real-time статистика</h2>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-info">
+                <div class="stat-number" id="stats-online">0</div>
+                <div class="stat-label">Пользователей онлайн</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🔍</div>
+            <div class="stat-info">
+                <div class="stat-number" id="stats-active">0</div>
+                <div class="stat-label">Активных проверок</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-info">
+                <div class="stat-number" id="stats-total">0</div>
+                <div class="stat-label">Всего проверок</div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

@@ -1,105 +1,133 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
-    <div class="card">
-        <h2>🔓 Bypass Tools</h2>
+<div class="card">
+    <h2>🔍 Чекер аккаунтов</h2>
+    <p>Проверка Roblox аккаунтов на валидность, баланс и статус</p>
+    
+    <div class="checker-form">
+        <textarea 
+            id="accounts-input" 
+            class="neon-textarea" 
+            placeholder="Введите аккаунты в формате:
+username:password
+user2:pass123
+user3:password456
+Максимум 100 аккаунтов за раз"
+            rows="10"
+        ></textarea>
         
-        <div class="bypass-section">
-            <h3>Bypass 13- Accounts</h3>
-            <div class="input-group">
-                <input type="text" id="username-13minus" class="neon-input" placeholder="Username">
-                <input type="password" id="password-13minus" class="neon-input" placeholder="Password">
-            </div>
-            <button class="neon-button" onclick="bypass13Minus()">Bypass 13-</button>
-            <div id="result-13minus" class="results-container"></div>
-        </div>
+        <button class="neon-button large" onclick="checkAccounts()">
+            🚀 Запустить проверку
+        </button>
         
-        <div class="bypass-section">
-            <h3>Bypass 13-17 Accounts</h3>
-            <div class="input-group">
-                <input type="text" id="username-1317" class="neon-input" placeholder="Username">
-                <input type="password" id="password-1317" class="neon-input" placeholder="Password">
-            </div>
-            <button class="neon-button" onclick="bypass1317()">Bypass 13-17</button>
-            <div id="result-1317" class="results-container"></div>
+        <div class="progress-bar" id="progress-bar" style="display: none;">
+            <div class="progress-fill" id="progress-fill"></div>
         </div>
     </div>
 </div>
 
+<div class="card">
+    <h2>📊 Результаты проверки</h2>
+    <div id="checker-results" class="results-container">
+        <p class="placeholder-text">Результаты появятся здесь после проверки...</p>
+    </div>
+</div>
+
 <script>
-function bypass13Minus() {
-    const username = document.getElementById('username-13minus').value;
-    const password = document.getElementById('password-13minus').value;
-    const resultDiv = document.getElementById('result-13minus');
+function checkAccounts() {
+    const accountsText = document.getElementById('accounts-input').value;
+    const resultsDiv = document.getElementById('checker-results');
+    const progressBar = document.getElementById('progress-bar');
+    const progressFill = document.getElementById('progress-fill');
     
-    if (!username || !password) {
-        resultDiv.innerHTML = '<div class="result-item result-invalid">Заполните все поля!</div>';
+    if (!accountsText.trim()) {
+        resultsDiv.innerHTML = '<div class="result-item result-invalid">Введите аккаунты для проверки!</div>';
         return;
     }
     
-    resultDiv.innerHTML = '<p>Выполняем bypass...</p>';
+    const accountsCount = accountsText.split('\n').filter(acc => acc.trim()).length;
+    if (accountsCount > 100) {
+        resultsDiv.innerHTML = '<div class="result-item result-invalid">Максимум 100 аккаунтов за раз!</div>';
+        return;
+    }
     
-    fetch('/api/bypass_13_minus', {
+    resultsDiv.innerHTML = '<p>🔄 Запуск проверки... Подождите</p>';
+    progressBar.style.display = 'block';
+    progressFill.style.width = '0%';
+    
+    // Анимация прогресса
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        progress += 1;
+        progressFill.style.width = Math.min(progress, 90) + '%';
+        if (progress >= 90) clearInterval(progressInterval);
+    }, 50);
+    
+    fetch('/api/check_accounts', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            credentials: {username, password}
-        })
+        body: JSON.stringify({accounts: accountsText})
     })
     .then(response => response.json())
     .then(data => {
-        if (data.status === 'success') {
-            resultDiv.innerHTML = `
-                <div class="result-item result-valid">
-                    <strong>✅ Success!</strong><br>
-                    ${data.message}<br>
-                    <small>Removed: ${data.restrictions_removed.join(', ')}</small><br>
-                    <small>Added: ${data.new_privileges.join(', ')}</small>
-                </div>
-            `;
-        } else {
-            resultDiv.innerHTML = `<div class="result-item result-invalid">❌ Error: ${data.message}</div>`;
-        }
-        updateUserStats();
+        clearInterval(progressInterval);
+        progressFill.style.width = '100%';
+        setTimeout(() => progressBar.style.display = 'none', 1000);
+        displayResults(data.results);
+        updateStats();
+    })
+    .catch(error => {
+        clearInterval(progressInterval);
+        progressBar.style.display = 'none';
+        console.error('Error:', error);
+        resultsDiv.innerHTML = '<div class="result-item result-invalid">Ошибка при проверке аккаунтов</div>';
     });
 }
 
-function bypass1317() {
-    const username = document.getElementById('username-1317').value;
-    const password = document.getElementById('password-1317').value;
-    const resultDiv = document.getElementById('result-1317');
+function displayResults(results) {
+    const resultsDiv = document.getElementById('checker-results');
+    let html = '<h3>Результаты проверки:</h3>';
     
-    if (!username || !password) {
-        resultDiv.innerHTML = '<div class="result-item result-invalid">Заполните все поля!</div>';
-        return;
-    }
+    let validCount = 0, limitedCount = 0, bannedCount = 0, invalidCount = 0;
     
-    resultDiv.innerHTML = '<p>Выполняем bypass...</p>';
-    
-    fetch('/api/bypass_13_17', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            credentials: {username, password}
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            resultDiv.innerHTML = `
-                <div class="result-item result-valid">
-                    <strong>✅ Success!</strong><br>
-                    ${data.message}<br>
-                    <small>Removed: ${data.restrictions_removed.join(', ')}</small><br>
-                    <small>Added: ${data.new_privileges.join(', ')}</small>
+    results.forEach(result => {
+        const statusClass = `result-${result.status}`;
+        const statusIcon = result.status === 'valid' ? '✅' : 
+                          result.status === 'limited' ? '⚠️' : 
+                          result.status === 'banned' ? '❌' : '❓';
+        
+        html += `
+            <div class="result-item ${statusClass}">
+                <div class="result-header">
+                    <strong>${result.account}</strong>
+                    <span class="status-badge">${statusIcon} ${result.status.toUpperCase()}</span>
                 </div>
-            `;
-        } else {
-            resultDiv.innerHTML = `<div class="result-item result-invalid">❌ Error: ${data.message}</div>`;
-        }
-        updateUserStats();
+                <div class="result-details">
+                    ${result.details}
+                    ${result.robux ? ` | 💰 ${result.robux} Robux` : ''}
+                    ${result.premium ? ' | ⭐ Premium' : ''}
+                    ${result.items_count ? ` | 🎒 ${result.items_count} items` : ''}
+                </div>
+            </div>
+        `;
+        
+        // Статистика
+        if (result.status === 'valid') validCount++;
+        else if (result.status === 'limited') limitedCount++;
+        else if (result.status === 'banned') bannedCount++;
+        else invalidCount++;
     });
+    
+    // Сводка
+    html += `
+        <div class="results-summary">
+            <h4>📈 Сводка:</h4>
+            <p>✅ Валидных: ${validCount} | ⚠️ Ограниченных: ${limitedCount} | ❌ Забаненных: ${bannedCount} | ❓ Невалидных: ${invalidCount}</p>
+        </div>
+    `;
+    
+    resultsDiv.innerHTML = html;
 }
 </script>
 {% endblock %}
