@@ -6,6 +6,8 @@ from datetime import datetime
 import json
 import requests
 import random
+from html.parser import HTMLParser
+import re
 
 app = Flask(__name__)
 app.secret_key = 'meow-secret-key-' + str(random.randint(1000, 9999))  # Автогенерация
