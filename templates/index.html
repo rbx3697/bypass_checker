@@ -7,33 +7,33 @@
     
     <div class="features-grid">
         <div class="feature-card">
-            <h3>🔍 Чекер аккаунтов</h3>
-            <p>Массовая проверка Roblox аккаунтов на валидность, баланс и статус</p>
+            <h3>🔍 Чекер куки</h3>
+            <p>Проверка Roblox куки на валидность, баланс, премиум и ограничения</p>
             <a href="/checker" class="neon-button">Перейти к чекеру</a>
         </div>
         
         <div class="feature-card">
-            <h3>🔓 Bypass системы</h3>
-            <p>Обход ограничений для аккаунтов 13- и 13-17 лет</p>
+            <h3>🔓 Bypass систем</h3>
+            <p>Обход ограничений через родительские аккаунты (13- и 13-17)</p>
             <a href="/bypass" class="neon-button">Перейти к bypass</a>
         </div>
         
         <div class="feature-card">
             <h3>📊 Личный кабинет</h3>
-            <p>Ваша статистика, история проверок и операций</p>
+            <p>Ваша статистика проверок и операций bypass</p>
             <a href="/dashboard" class="neon-button">Перейти в кабинет</a>
         </div>
     </div>
 </div>
 
 <div class="card">
-    <h2>📈 Real-time статистика</h2>
+    <h2>📈 Real-time статистика сайта</h2>
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-icon">👥</div>
             <div class="stat-info">
                 <div class="stat-number" id="stats-online">0</div>
-                <div class="stat-label">Пользователей онлайн</div>
+                <div class="stat-label">Сейчас онлайн</div>
             </div>
         </div>
         <div class="stat-card">
@@ -50,6 +50,62 @@
                 <div class="stat-label">Всего проверок</div>
             </div>
         </div>
+        <div class="stat-card">
+            <div class="stat-icon">🚀</div>
+            <div class="stat-info">
+                <div class="stat-number" id="stats-checks-min">0</div>
+                <div class="stat-label">Проверок/минуту</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">✅</div>
+            <div class="stat-info">
+                <div class="stat-number" id="stats-bypass-min">0</div>
+                <div class="stat-label">Bypass/минуту</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">👤</div>
+            <div class="stat-info">
+                <div class="stat-number" id="stats-active-users">0</div>
+                <div class="stat-label">Активных юзеров</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="last-update">
+        <small>Обновлено: <span id="last-update-time">только что</span></small>
     </div>
 </div>
+
+<script>
+// Обновление расширенной статистики
+function updateExtendedStats() {
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            // Основная статистика
+            document.getElementById('stats-online').textContent = data.online_users;
+            document.getElementById('stats-active').textContent = data.active_checks;
+            document.getElementById('stats-total').textContent = data.total_checks;
+            
+            // Real-time статистика
+            const rt = data.real_time_stats || {};
+            document.getElementById('stats-checks-min').textContent = rt.checks_per_minute || 0;
+            document.getElementById('stats-bypass-min').textContent = rt.successful_bypasses || 0;
+            document.getElementById('stats-active-users').textContent = rt.active_users || 0;
+            
+            // Время обновления
+            if (rt.last_update) {
+                const updateTime = new Date(rt.last_update).toLocaleTimeString();
+                document.getElementById('last-update-time').textContent = updateTime;
+            }
+        })
+        .catch(error => console.error('Error updating stats:', error));
+}
+
+// Обновляем каждые 5 секунд
+setInterval(updateExtendedStats, 5000);
+updateExtendedStats();
+</script>
 {% endblock %}

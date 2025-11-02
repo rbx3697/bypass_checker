@@ -2,22 +2,21 @@
 
 {% block content %}
 <div class="card">
-    <h2>🔍 Чекер аккаунтов</h2>
-    <p>Проверка Roblox аккаунтов на валидность, баланс и статус</p>
+    <h2>🔍 Чекер Roblox куки</h2>
+    <p>Проверка куки на валидность, получение информации об аккаунте</p>
     
     <div class="checker-form">
         <textarea 
-            id="accounts-input" 
+            id="cookies-input" 
             class="neon-textarea" 
-            placeholder="Введите аккаунты в формате:
-username:password
-user2:pass123
-user3:password456
-Максимум 100 аккаунтов за раз"
+            placeholder="Введите Roblox куки (.ROBLOSECURITY):
+_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-to-your-account-and-to-steal-your-ROBUX-and-items|_
+Можно несколько куки, каждую с новой строки
+Максимум 50 куки за раз"
             rows="10"
         ></textarea>
         
-        <button class="neon-button large" onclick="checkAccounts()">
+        <button class="neon-button large" onclick="checkCookies()">
             🚀 Запустить проверку
         </button>
         
@@ -30,29 +29,29 @@ user3:password456
 <div class="card">
     <h2>📊 Результаты проверки</h2>
     <div id="checker-results" class="results-container">
-        <p class="placeholder-text">Результаты появятся здесь после проверки...</p>
+        <p class="placeholder-text">Результаты появятся здесь после проверки куки...</p>
     </div>
 </div>
 
 <script>
-function checkAccounts() {
-    const accountsText = document.getElementById('accounts-input').value;
+function checkCookies() {
+    const cookiesText = document.getElementById('cookies-input').value;
     const resultsDiv = document.getElementById('checker-results');
     const progressBar = document.getElementById('progress-bar');
     const progressFill = document.getElementById('progress-fill');
     
-    if (!accountsText.trim()) {
-        resultsDiv.innerHTML = '<div class="result-item result-invalid">Введите аккаунты для проверки!</div>';
+    if (!cookiesText.trim()) {
+        resultsDiv.innerHTML = '<div class="result-item result-invalid">Введите куки для проверки!</div>';
         return;
     }
     
-    const accountsCount = accountsText.split('\n').filter(acc => acc.trim()).length;
-    if (accountsCount > 100) {
-        resultsDiv.innerHTML = '<div class="result-item result-invalid">Максимум 100 аккаунтов за раз!</div>';
+    const cookiesCount = cookiesText.split('\n').filter(cookie => cookie.trim()).length;
+    if (cookiesCount > 50) {
+        resultsDiv.innerHTML = '<div class="result-item result-invalid">Максимум 50 куки за раз!</div>';
         return;
     }
     
-    resultsDiv.innerHTML = '<p>🔄 Запуск проверки... Подождите</p>';
+    resultsDiv.innerHTML = '<p>🔄 Запуск проверки куки... Подождите</p>';
     progressBar.style.display = 'block';
     progressFill.style.width = '0%';
     
@@ -67,29 +66,30 @@ function checkAccounts() {
     fetch('/api/check_accounts', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({accounts: accountsText})
+        body: JSON.stringify({cookies: cookiesText})
     })
     .then(response => response.json())
     .then(data => {
         clearInterval(progressInterval);
         progressFill.style.width = '100%';
         setTimeout(() => progressBar.style.display = 'none', 1000);
-        displayResults(data.results);
+        displayCookieResults(data.results);
         updateStats();
     })
     .catch(error => {
         clearInterval(progressInterval);
         progressBar.style.display = 'none';
         console.error('Error:', error);
-        resultsDiv.innerHTML = '<div class="result-item result-invalid">Ошибка при проверке аккаунтов</div>';
+        resultsDiv.innerHTML = '<div class="result-item result-invalid">Ошибка при проверке куки</div>';
     });
 }
 
-function displayResults(results) {
+function displayCookieResults(results) {
     const resultsDiv = document.getElementById('checker-results');
-    let html = '<h3>Результаты проверки:</h3>';
+    let html = '<h3>Результаты проверки куки:</h3>';
     
     let validCount = 0, limitedCount = 0, bannedCount = 0, invalidCount = 0;
+    let totalRobux = 0, premiumCount = 0;
     
     results.forEach(result => {
         const statusClass = `result-${result.status}`;
@@ -100,14 +100,16 @@ function displayResults(results) {
         html += `
             <div class="result-item ${statusClass}">
                 <div class="result-header">
-                    <strong>${result.account}</strong>
+                    <strong>${result.username || 'Unknown'} (ID: ${result.user_id || 'N/A'})</strong>
                     <span class="status-badge">${statusIcon} ${result.status.toUpperCase()}</span>
                 </div>
                 <div class="result-details">
                     ${result.details}
                     ${result.robux ? ` | 💰 ${result.robux} Robux` : ''}
                     ${result.premium ? ' | ⭐ Premium' : ''}
-                    ${result.items_count ? ` | 🎒 ${result.items_count} items` : ''}
+                    ${result.friends_count ? ` | 👥 ${result.friends_count} friends` : ''}
+                    ${result.followers_count ? ` | 📈 ${result.followers_count} followers` : ''}
+                    ${result.created ? ` | 🗓️ Created: ${result.created.split('T')[0]}` : ''}
                 </div>
             </div>
         `;
@@ -117,13 +119,17 @@ function displayResults(results) {
         else if (result.status === 'limited') limitedCount++;
         else if (result.status === 'banned') bannedCount++;
         else invalidCount++;
+        
+        if (result.robux) totalRobux += result.robux;
+        if (result.premium) premiumCount++;
     });
     
     // Сводка
     html += `
         <div class="results-summary">
-            <h4>📈 Сводка:</h4>
+            <h4>📈 Сводка проверки:</h4>
             <p>✅ Валидных: ${validCount} | ⚠️ Ограниченных: ${limitedCount} | ❌ Забаненных: ${bannedCount} | ❓ Невалидных: ${invalidCount}</p>
+            <p>💰 Всего Robux: ${totalRobux} | ⭐ Premium аккаунтов: ${premiumCount}</p>
         </div>
     `;
     
