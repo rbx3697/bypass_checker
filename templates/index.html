@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div>
+    <h2>Добро пожаловать!</h2>
+    <p>Ваш ID: <strong>{{ user_id[:8] }}...</strong></p>
+    
+    <div>
+        <h3>Доступные функции:</h3>
+        <ul>
+            <li><a href="/checker">🔍 Чекер аккаунтов</a></li>
+            <li><a href="/bypass">🔓 Bypass системы</a></li>
+            <li><a href="/dashboard">📊 Личный кабинет</a></li>
+        </ul>
+    </div>
+    
+    <div>
+        <h3>Статистика:</h3>
+        <p>Онлайн пользователей: <span id="online-users">0</span></p>
+        <p>Всего проверок: <span id="total-checks">0</span></p>
+    </div>
+</div>
+
+<script>
+// Простая проверка работы
+fetch('/api/stats')
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('online-users').textContent = data.online_users;
+        document.getElementById('total-checks').textContent = data.total_checks;
+    });
+</script>
+{% endblock %}

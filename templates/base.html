@@ -4,44 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MeowTool Web</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            background: #0c0c1d;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .neon-text {
+            color: #b967ff;
+            text-shadow: 0 0 10px #b967ff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+    </style>
 </head>
 <body>
-    <nav class="neon-nav">
-        <div class="nav-brand">
-            <h1 class="neon-text">🐱 MeowTool</h1>
-        </div>
-        <div class="nav-links">
-            <a href="/" class="neon-link">Главная</a>
-            <a href="/dashboard" class="neon-link">Кабинет</a>
-            <a href="/checker" class="neon-link">Чекер</a>
-        </div>
-        <div class="nav-stats">
-            <span id="online-counter">Online: 0</span>
-        </div>
-    </nav>
-
-    <main>
+    <div class="container">
+        <h1 class="neon-text">🐱 MeowTool Web</h1>
         {% block content %}{% endblock %}
-    </main>
-
-    <footer class="neon-footer">
-        <div class="stats-container">
-            <div class="stat-item">
-                <span class="stat-label">Активных проверок:</span>
-                <span id="active-checks" class="stat-value">0</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Всего проверок:</span>
-                <span id="total-checks" class="stat-value">0</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Онлайн:</span>
-                <span id="online-users" class="stat-value">0</span>
-            </div>
-        </div>
-    </footer>
-
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    </div>
 </body>
 </html>
