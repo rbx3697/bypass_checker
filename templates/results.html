@@ -3,22 +3,72 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Результат проверки</title>
+  <title>Результат — Neon Checker</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root{
+      --accent1: 168, 64, 255;
+      --accent2: 107, 94, 255;
+    }
+    body{ background: #040012; color:#e8e8ff; font-family: Inter, system-ui, Arial; min-height:100vh; }
+    .glass { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.015)); border:1px solid rgba(255,255,255,0.05); backdrop-filter: blur(6px);}
+    .neon {
+      background: linear-gradient(90deg, rgba(var(--accent1),1), rgba(var(--accent2),1));
+      box-shadow: 0 10px 40px rgba(var(--accent1),0.14);
+      color: white;
+    }
+    pre.json {
+      background: rgba(6,6,20,0.6);
+      padding:16px;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,0.03);
+      max-height:420px;
+      overflow:auto;
+      font-size:13px;
+      line-height:1.45;
+      white-space: pre-wrap;
+    }
+  </style>
 </head>
-<body class="bg-slate-50 min-h-screen">
-  <div class="max-w-4xl mx-auto p-6">
-    <h1 class="text-2xl font-bold mb-4">Результат проверки</h1>
-    <div class="bg-white p-6 rounded shadow">
-      <pre class="whitespace-pre-wrap text-sm">{{ result | tojson(indent=2) }}</pre>
+<body>
+  <div class="max-w-4xl mx-auto p-8">
+    <header class="mb-6">
+      <h1 class="text-2xl font-bold">Результат проверки</h1>
+      <p class="text-sm text-slate-300 mt-1">Отчёт (JSON) — можешь скачать или скопировать.</p>
+    </header>
+
+    <div class="glass p-6 rounded-lg">
+      <div class="flex justify-between items-start mb-4">
+        <div>
+          <strong class="text-lg">Отчёт</strong>
+          <div class="text-xs text-slate-300">Источник: MeowTool (обёртка)</div>
+        </div>
+        <div class="flex gap-2">
+          <button id="copyBtn" class="px-3 py-1 rounded neon text-sm">Копировать JSON</button>
+          <a href="{{ url_for('download', task_id=task_id) }}" class="px-3 py-1 rounded bg-white/6 text-sm">Скачать JSON</a>
+          <a href="{{ url_for('index') }}" class="px-3 py-1 rounded bg-transparent border border-white/6 text-sm">Новая проверка</a>
+        </div>
+      </div>
+
+      <pre id="jsonContainer" class="json">{{ result | tojson(indent=2) }}</pre>
     </div>
 
-    <div class="mt-4 flex gap-2">
-      <a href="{{ url_for('index') }}" class="px-4 py-2 bg-slate-200 rounded">Новая проверка</a>
-      <a class="px-4 py-2 bg-emerald-600 text-white rounded" href="{{ url_for('download', task_id=task_id) }}">Скачать JSON</a>
-    </div>
-
-    <p class="mt-6 text-sm text-slate-500">Отчёт содержит результат вызова MeowTool. Убедитесь, что вы доверяете репозиторию MeowTool до использования.</p>
+    <p class="mt-6 text-sm text-slate-400">Убедись, что доверяешь исходному репозиторию MeowTool перед использованием.</p>
   </div>
+
+  <script>
+    const copyBtn = document.getElementById('copyBtn');
+    const jsonText = document.getElementById('jsonContainer').innerText;
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(jsonText);
+        copyBtn.innerText = 'Скопировано!';
+        setTimeout(() => copyBtn.innerText = 'Копировать JSON', 2000);
+      } catch (e) {
+        copyBtn.innerText = 'Ошибка копирования';
+        setTimeout(() => copyBtn.innerText = 'Копировать JSON', 2000);
+      }
+    });
+  </script>
 </body>
 </html>
