@@ -6,35 +6,20 @@
   <title>Результат — Neon Checker</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    :root{
-      --accent1: 168, 64, 255;
-      --accent2: 107, 94, 255;
-    }
-    body{ background: #040012; color:#e8e8ff; font-family: Inter, system-ui, Arial; min-height:100vh; }
-    .glass { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.015)); border:1px solid rgba(255,255,255,0.05); backdrop-filter: blur(6px);}
-    .neon {
-      background: linear-gradient(90deg, rgba(var(--accent1),1), rgba(var(--accent2),1));
-      box-shadow: 0 10px 40px rgba(var(--accent1),0.14);
-      color: white;
-    }
-    pre.json {
-      background: rgba(6,6,20,0.6);
-      padding:16px;
-      border-radius:8px;
-      border:1px solid rgba(255,255,255,0.03);
-      max-height:420px;
-      overflow:auto;
-      font-size:13px;
-      line-height:1.45;
-      white-space: pre-wrap;
-    }
+    :root{ --accent1:168,64,255; --accent2:114,91,255; }
+    body{ background:#050016; color:#e8e8ff; font-family:Inter,system-ui,Arial; min-height:100vh; padding:30px; }
+    .glass{ background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.012)); border:1px solid rgba(255,255,255,0.04); backdrop-filter: blur(8px); box-shadow:0 12px 40px rgba(3,1,20,0.7); }
+    .neon{ background: linear-gradient(90deg, rgba(var(--accent1),1), rgba(var(--accent2),1)); box-shadow: 0 12px 40px rgba(var(--accent1),0.12); color:#fff; }
+    pre.json{ background: rgba(6,6,20,0.6); padding:18px; border-radius:10px; border:1px solid rgba(255,255,255,0.03); max-height:420px; overflow:auto; font-size:13px; white-space: pre-wrap; }
+    .pulse { animation: pulse 1.8s infinite; }
+    @keyframes pulse { 0%{ transform: translateY(0) } 50%{ transform: translateY(-4px) } 100%{ transform: translateY(0) } }
   </style>
 </head>
 <body>
-  <div class="max-w-4xl mx-auto p-8">
+  <div class="max-w-4xl mx-auto">
     <header class="mb-6">
-      <h1 class="text-2xl font-bold">Результат проверки</h1>
-      <p class="text-sm text-slate-300 mt-1">Отчёт (JSON) — можешь скачать или скопировать.</p>
+      <h1 class="text-3xl font-bold">Результат проверки</h1>
+      <p class="text-sm text-slate-300 mt-1">Отчёт (JSON) — можно скачать или скопировать.</p>
     </header>
 
     <div class="glass p-6 rounded-lg">
@@ -45,7 +30,7 @@
         </div>
         <div class="flex gap-2">
           <button id="copyBtn" class="px-3 py-1 rounded neon text-sm">Копировать JSON</button>
-          <a href="{{ url_for('download', task_id=task_id) }}" class="px-3 py-1 rounded bg-white/6 text-sm">Скачать JSON</a>
+          <a id="dlBtn" href="{{ url_for('download', task_id=task_id) }}" class="px-3 py-1 rounded bg-white/6 text-sm">Скачать JSON</a>
           <a href="{{ url_for('index') }}" class="px-3 py-1 rounded bg-transparent border border-white/6 text-sm">Новая проверка</a>
         </div>
       </div>
@@ -63,10 +48,11 @@
       try {
         await navigator.clipboard.writeText(jsonText);
         copyBtn.innerText = 'Скопировано!';
-        setTimeout(() => copyBtn.innerText = 'Копировать JSON', 2000);
+        copyBtn.classList.add('pulse');
+        setTimeout(()=>{ copyBtn.innerText='Копировать JSON'; copyBtn.classList.remove('pulse'); }, 1800);
       } catch (e) {
-        copyBtn.innerText = 'Ошибка копирования';
-        setTimeout(() => copyBtn.innerText = 'Копировать JSON', 2000);
+        copyBtn.innerText = 'Ошибка';
+        setTimeout(()=> copyBtn.innerText='Копировать JSON', 1800);
       }
     });
   </script>
