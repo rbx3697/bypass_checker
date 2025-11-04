@@ -28,7 +28,6 @@
         <div class="mt-4"><a href="{{ url_for('index') }}" class="px-3 py-2 rounded bg-transparent border border-white/6 text-sm">Назад</a></div>
       </div>
     {% else %}
-      <!-- Сводка -->
       <div class="glass p-6 rounded-lg mb-6">
         <div class="flex flex-wrap items-center gap-3">
           <span class="pill">Username: <b>{{ payload.user.username or '-' }}</b></span>
@@ -39,24 +38,21 @@
           <span class="pill">2FA: <b>{{ 'Да' if payload.checks.two_factor_enabled else 'Нет' }}</b></span>
           <span class="pill">Pending: <b>{{ payload.checks.pending_robux or 0 }}</b></span>
           <span class="pill">RAP: <b>{{ payload.checks.rap or 0 }}</b></span>
+          <span class="pill">Card: <b>{{ 'Да' if payload.checks.card_present else 'Нет' }}</b></span>
         </div>
       </div>
 
-      <!-- Детали -->
       <div class="glass p-6 rounded-lg mb-6">
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
           <div><div class="text-slate-400">Почта вериф.</div><div><b>{{ 'Да' if payload.checks.mail_verified else 'Нет' }}</b></div></div>
           <div><div class="text-slate-400">Телефон вериф.</div><div><b>{{ 'Да' if payload.checks.phone_verified else 'Нет' }}</b></div></div>
-          <div><div class="text-slate-400">Инвентарь</div><div><b>{{ 'Friends' if payload.user.inventory_public is false else ('Public' if payload.user.inventory_public else 'Unknown') }}</b></div></div>
-          <div><div class="text-slate-400">Voice</div><div><b>{{ 'Да' if payload.user.voice_enabled else 'Нет' }}</b></div></div>
-          <div><div class="text-slate-400">Друзья</div><div><b>{{ payload.user.friends_count or 0 }}</b></div></div>
           <div><div class="text-slate-400">Создан</div><div><b>{{ (payload.user.created or '-')[:10] }}</b></div></div>
+          <div><div class="text-slate-400">Друзья</div><div><b>{{ payload.user.friends_count or 0 }}</b></div></div>
           <div><div class="text-slate-400">Group Funds</div><div><b>{{ payload.checks.group_funds_robux or 0 }}</b></div></div>
           <div><div class="text-slate-400">Billing</div><div><b>{{ (payload.checks.billing_sources | join(', ')) if payload.checks.billing_sources else 'Нет' }}</b></div></div>
         </div>
       </div>
 
-      <!-- Экспорт -->
       <div class="flex flex-wrap gap-2 mb-6">
         <a href="{{ url_for('download', task_id=task_id) }}" class="px-3 py-2 rounded bg-white/6 text-sm">Скачать JSON</a>
         <a href="{{ url_for('export_txt', task_id=task_id) }}" class="px-3 py-2 rounded bg-white/6 text-sm">Скачать TXT (без токена)</a>
@@ -67,7 +63,6 @@
         <a href="{{ url_for('index') }}" class="px-3 py-2 rounded bg-transparent border border-white/6 text-sm">Новая проверка</a>
       </div>
 
-      <!-- Сырой JSON -->
       <div class="glass p-6 rounded-lg">
         <div class="flex justify-between items-start mb-4">
           <strong class="text-lg">Сырой JSON</strong>
