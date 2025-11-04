@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Результат проверки</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <div class="max-w-4xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-4">Результат проверки</h1>
+    <div class="bg-white p-6 rounded shadow">
+      <pre class="whitespace-pre-wrap text-sm">{{ result | tojson(indent=2) }}</pre>
+    </div>
+
+    <div class="mt-4 flex gap-2">
+      <a href="{{ url_for('index') }}" class="px-4 py-2 bg-slate-200 rounded">Новая проверка</a>
+      <a class="px-4 py-2 bg-emerald-600 text-white rounded" href="{{ url_for('download', task_id=task_id) }}">Скачать JSON</a>
+    </div>
+
+    <p class="mt-6 text-sm text-slate-500">Отчёт содержит результат вызова MeowTool. Убедитесь, что вы доверяете репозиторию MeowTool до использования.</p>
+  </div>
+</body>
+</html>

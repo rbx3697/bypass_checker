@@ -1,86 +1,51 @@
-{% extends "base.html" %}
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cookie Checker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <div class="max-w-3xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-4">Проверка аккаунта</h1>
+    <p class="mb-4 text-slate-600">Вставьте свой куки Roblox (или другой токен). Нажмите подтверждение, чтобы подтвердить, что аккаунт принадлежит вам.</p>
 
-{% block content %}
-<div class="card">
-    <h1 class="neon-text">🐱 Добро пожаловать в MeowTool Web!</h1>
-    <p>Автоматический вход выполнен. Ваш ID: <strong>{{ user_id[:8] }}...</strong></p>
-    
-    <div class="features-grid">
-        <div class="feature-card">
-            <h3>🔍 Чекер куки</h3>
-            <p>Полная проверка Roblox аккаунтов: баланс, премиум, безопасность, биллинг</p>
-            <a href="/checker" class="neon-button">Перейти к чекеру</a>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="space-y-2 mb-4">
+          {% for category, msg in messages %}
+            <div class="p-3 rounded {{ 'bg-red-100 text-red-800' if category=='danger' else 'bg-yellow-100 text-yellow-800' }}">{{ msg }}</div>
+          {% endfor %}
         </div>
-        
-        <div class="feature-card">
-            <h3>🔓 Bypass систем</h3>
-            <p>Обход ограничений через родительские аккаунты (13- и 13-17)</p>
-            <a href="/bypass" class="neon-button">Перейти к bypass</a>
-        </div>
-        
-        <div class="feature-card">
-            <h3>📊 Личный кабинет</h3>
-            <p>Ваша статистика проверок и операций bypass в реальном времени</p>
-            <a href="/dashboard" class="neon-button">Перейти в кабинет</a>
-        </div>
-    </div>
-</div>
+      {% endif %}
+    {% endwith %}
 
-<div class="card">
-    <h2>📈 Статистика сайта в реальном времени</h2>
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon">👥</div>
-            <div class="stat-info">
-                <div class="stat-number" id="stats-online">0</div>
-                <div class="stat-label">Сейчас онлайн</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">📊</div>
-            <div class="stat-info">
-                <div class="stat-number" id="stats-total">0</div>
-                <div class="stat-label">Всего проверок</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">👤</div>
-            <div class="stat-info">
-                <div class="stat-number" id="stats-users">0</div>
-                <div class="stat-label">Всего пользователей</div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="last-update">
-        <small>Обновлено: <span id="last-update-time">только что</span></small>
-    </div>
-</div>
+    <form action="{{ url_for('check') }}" method="post" class="space-y-4 bg-white p-6 rounded shadow">
+      <label class="block">
+        <span class="text-sm font-medium text-slate-700">Куки / Токен</span>
+        <textarea name="cookie" rows="6" required class="mt-1 block w-full rounded border p-2"></textarea>
+      </label>
 
-<script>
-// Обновление статистики
-function updateStats() {
-    fetch('/api/stats')
-        .then(response => response.json())
-        .then(data => {
-            // Только реальные цифры
-            document.getElementById('stats-online').textContent = data.online_users;
-            document.getElementById('stats-total').textContent = data.total_checks;
-            document.getElementById('stats-users').textContent = data.total_users;
-            
-            // Обновляем футер
-            document.getElementById('online-users').textContent = data.online_users;
-            document.getElementById('total-checks').textContent = data.total_checks;
-            document.getElementById('online-counter').textContent = `Online: ${data.online_users}`;
-            
-            // Время обновления
-            document.getElementById('last-update-time').textContent = new Date().toLocaleTimeString();
-        })
-        .catch(error => console.error('Error updating stats:', error));
-}
+      <label class="flex items-center">
+        <input type="checkbox" name="owner_confirm" class="mr-2" />
+        <span>Я подтверждаю, что данный аккаунт принадлежит мне или у меня есть разрешение владельца.</span>
+      </label>
 
-// Обновляем каждые 5 секунд
-setInterval(updateStats, 5000);
-updateStats();
-</script>
-{% endblock %}
+      <label class="block">
+        <span class="text-sm text-slate-600">Пригласить друга (опционально)</span>
+        <input type="email" name="friend_email" placeholder="email друга" class="mt-1 block w-full rounded border p-2" />
+      </label>
+
+      <div class="flex items-center justify-between">
+        <button type="submit" class="px-4 py-2 bg-sky-600 text-white rounded">Проверить</button>
+        <small class="text-xs text-slate-500">Данные сохраняются зашифрованными и не передаются третьим лицам.</small>
+      </div>
+    </form>
+
+    <footer class="mt-6 text-sm text-slate-500">
+      <p>Совет по безопасности: не используйте чужие куки. Для теста создайте тестовый аккаунт.</p>
+    </footer>
+  </div>
+</body>
+</html>
