@@ -18,66 +18,76 @@
   <div class="max-w-5xl mx-auto">
     <header class="mb-6">
       <h1 class="text-3xl font-bold">Результат проверки</h1>
-      <p class="text-sm text-slate-300 mt-1">Сводка и подробности. Экспортируй как JSON или TXT.</p>
+      <p class="text-sm text-slate-300 mt-1">Сводка и подробности. Экспорт как JSON или TXT.</p>
     </header>
 
-    <!-- Сводка -->
-    <div class="glass p-6 rounded-lg mb-6">
-      <div class="flex flex-wrap items-center gap-3">
-        <span class="pill">Username: <b>{{ payload.user.username or '-' }}</b></span>
-        <span class="pill">ID: <b>{{ payload.user.id }}</b></span>
-        <span class="pill">Robux: <b>{{ payload.checks.robux or 0 }}</b></span>
-        <span class="pill">Total Spent: <b>{{ payload.checks.total_spent_robux or 0 }}</b></span>
-        <span class="pill">Premium: <b>{{ 'Да' if payload.user.premium else 'Нет' }}</b></span>
-        <span class="pill">2FA: <b>{{ 'Да' if payload.checks.two_factor_enabled else 'Нет' }}</b></span>
-        <span class="pill">Pending: <b>{{ payload.checks.pending_robux or 0 }}</b></span>
-        <span class="pill">RAP: <b>{{ payload.checks.rap or 0 }}</b></span>
+    {% if result.status != 'ok' %}
+      <div class="glass p-6 rounded-lg mb-6">
+        <div class="text-red-300 font-semibold mb-2">Ошибка: {{ result.error }}</div>
+        {% if result.hint %}<div class="text-slate-300 text-sm">{{ result.hint }}</div>{% endif %}
+        <div class="mt-4"><a href="{{ url_for('index') }}" class="px-3 py-2 rounded bg-transparent border border-white/6 text-sm">Назад</a></div>
       </div>
-    </div>
-
-    <!-- Детали -->
-    <div class="glass p-6 rounded-lg mb-6">
-      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-        <div><div class="text-slate-400">Почта вериф.</div><div><b>{{ 'Да' if payload.checks.mail_verified else 'Нет' }}</b></div></div>
-        <div><div class="text-slate-400">Телефон вериф.</div><div><b>{{ 'Да' if payload.checks.phone_verified else 'Нет' }}</b></div></div>
-        <div><div class="text-slate-400">Инвентарь</div><div><b>{{ 'Friends' if payload.user.inventory_public is false else ('Public' if payload.user.inventory_public else 'Unknown') }}</b></div></div>
-        <div><div class="text-slate-400">Voice</div><div><b>{{ 'Да' if payload.user.voice_enabled else 'Нет' }}</b></div></div>
-        <div><div class="text-slate-400">Друзья</div><div><b>{{ payload.user.friends_count or 0 }}</b></div></div>
-        <div><div class="text-slate-400">Создан</div><div><b>{{ (payload.user.created or '-')[:10] }}</b></div></div>
-        <div><div class="text-slate-400">Group Funds</div><div><b>{{ payload.checks.group_funds_robux or 0 }}</b></div></div>
-        <div><div class="text-slate-400">Billing</div><div><b>{{ (payload.checks.billing_sources | join(', ')) if payload.checks.billing_sources else 'Нет' }}</b></div></div>
+    {% else %}
+      <!-- Сводка -->
+      <div class="glass p-6 rounded-lg mb-6">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="pill">Username: <b>{{ payload.user.username or '-' }}</b></span>
+          <span class="pill">ID: <b>{{ payload.user.id }}</b></span>
+          <span class="pill">Robux: <b>{{ payload.checks.robux or 0 }}</b></span>
+          <span class="pill">Total Spent: <b>{{ payload.checks.total_spent_robux or 0 }}</b></span>
+          <span class="pill">Premium: <b>{{ 'Да' if payload.user.premium else 'Нет' }}</b></span>
+          <span class="pill">2FA: <b>{{ 'Да' if payload.checks.two_factor_enabled else 'Нет' }}</b></span>
+          <span class="pill">Pending: <b>{{ payload.checks.pending_robux or 0 }}</b></span>
+          <span class="pill">RAP: <b>{{ payload.checks.rap or 0 }}</b></span>
+        </div>
       </div>
-    </div>
 
-    <!-- Кнопки экспорта -->
-    <div class="flex flex-wrap gap-2 mb-6">
-      <a href="{{ url_for('download', task_id=task_id) }}" class="px-3 py-2 rounded bg-white/6 text-sm">Скачать JSON</a>
-      <a href="{{ url_for('export_txt', task_id=task_id) }}" class="px-3 py-2 rounded bg-white/6 text-sm">Скачать TXT (без токена)</a>
-      <a href="{{ url_for('export_txt', task_id=task_id) }}?include_secret=1" class="px-3 py-2 rounded text-sm neon"
-         onclick="return confirm('ОПАСНО: в файл попадёт токен .ROBLOSECURITY. Никому его не передавай! Продолжить?')">
-        Скачать TXT (с токеном) — ОПАСНО
-      </a>
-      <a href="{{ url_for('index') }}" class="px-3 py-2 rounded bg-transparent border border-white/6 text-sm">Новая проверка</a>
-    </div>
-
-    <!-- Сырой JSON ниже, можно свернуть если надо -->
-    <div class="glass p-6 rounded-lg">
-      <div class="flex justify-between items-start mb-4">
-        <strong class="text-lg">Сырой JSON</strong>
-        <button id="copyBtn" class="px-3 py-1 rounded neon text-sm">Копировать JSON</button>
+      <!-- Детали -->
+      <div class="glass p-6 rounded-lg mb-6">
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+          <div><div class="text-slate-400">Почта вериф.</div><div><b>{{ 'Да' if payload.checks.mail_verified else 'Нет' }}</b></div></div>
+          <div><div class="text-slate-400">Телефон вериф.</div><div><b>{{ 'Да' if payload.checks.phone_verified else 'Нет' }}</b></div></div>
+          <div><div class="text-slate-400">Инвентарь</div><div><b>{{ 'Friends' if payload.user.inventory_public is false else ('Public' if payload.user.inventory_public else 'Unknown') }}</b></div></div>
+          <div><div class="text-slate-400">Voice</div><div><b>{{ 'Да' if payload.user.voice_enabled else 'Нет' }}</b></div></div>
+          <div><div class="text-slate-400">Друзья</div><div><b>{{ payload.user.friends_count or 0 }}</b></div></div>
+          <div><div class="text-slate-400">Создан</div><div><b>{{ (payload.user.created or '-')[:10] }}</b></div></div>
+          <div><div class="text-slate-400">Group Funds</div><div><b>{{ payload.checks.group_funds_robux or 0 }}</b></div></div>
+          <div><div class="text-slate-400">Billing</div><div><b>{{ (payload.checks.billing_sources | join(', ')) if payload.checks.billing_sources else 'Нет' }}</b></div></div>
+        </div>
       </div>
-      <pre id="jsonContainer" class="json">{{ result | tojson(indent=2) }}</pre>
-    </div>
+
+      <!-- Экспорт -->
+      <div class="flex flex-wrap gap-2 mb-6">
+        <a href="{{ url_for('download', task_id=task_id) }}" class="px-3 py-2 rounded bg-white/6 text-sm">Скачать JSON</a>
+        <a href="{{ url_for('export_txt', task_id=task_id) }}" class="px-3 py-2 rounded bg-white/6 text-sm">Скачать TXT (без токена)</a>
+        <a href="{{ url_for('export_txt', task_id=task_id) }}?include_secret=1" class="px-3 py-2 rounded text-sm neon"
+           onclick="return confirm('ОПАСНО: в файл попадёт токен .ROBLOSECURITY. Никому его не передавай! Продолжить?')">
+          Скачать TXT (с токеном)
+        </a>
+        <a href="{{ url_for('index') }}" class="px-3 py-2 rounded bg-transparent border border-white/6 text-sm">Новая проверка</a>
+      </div>
+
+      <!-- Сырой JSON -->
+      <div class="glass p-6 rounded-lg">
+        <div class="flex justify-between items-start mb-4">
+          <strong class="text-lg">Сырой JSON</strong>
+          <button id="copyBtn" class="px-3 py-1 rounded neon text-sm">Копировать JSON</button>
+        </div>
+        <pre id="jsonContainer" class="json">{{ result | tojson(indent=2) }}</pre>
+      </div>
+    {% endif %}
   </div>
 
   <script>
     const copyBtn = document.getElementById('copyBtn');
-    const jsonText = document.getElementById('jsonContainer').innerText;
-    copyBtn.addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(jsonText); copyBtn.innerText='Скопировано!'; }
-      catch { copyBtn.innerText='Ошибка'; }
-      setTimeout(()=> copyBtn.innerText='Копировать JSON', 1800);
-    });
+    if (copyBtn){
+      const jsonText = document.getElementById('jsonContainer').innerText;
+      copyBtn.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(jsonText); copyBtn.innerText='Скопировано!'; }
+        catch { copyBtn.innerText='Ошибка'; }
+        setTimeout(()=> copyBtn.innerText='Копировать JSON', 1800);
+      });
+    }
   </script>
 </body>
 </html>

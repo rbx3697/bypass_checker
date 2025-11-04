@@ -6,158 +6,98 @@
   <title>Neon Checker — Проверка аккаунта</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    :root{
-      --bg-dark: #060014;
-      --card-bg: rgba(255,255,255,0.03);
-      --accent1: 168,64,255;
-      --accent2: 114,91,255;
-    }
+    :root{ --bg:#060014; --a1:168,64,255; --a2:114,91,255; }
     html,body{height:100%}
-    body{
-      margin:0;
-      background: radial-gradient(circle at 10% 20%, rgba(168,64,255,0.06), transparent 6%),
-                  radial-gradient(circle at 90% 80%, rgba(114,91,255,0.06), transparent 8%),
-                  var(--bg-dark);
-      color: #e8e8ff;
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-    }
-
-    /* Canvas full-screen holder */
-    .bg-canvas {
-      position: fixed; inset: 0; z-index: 0; pointer-events:none;
-    }
-
-    /* Glass card */
-    .glass {
-      background: linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.012));
-      border: 1px solid rgba(255,255,255,0.04);
-      backdrop-filter: blur(10px) saturate(120%);
-      box-shadow: 0 12px 50px rgba(2,1,10,0.7);
-      position: relative; z-index: 2;
-    }
-
-    header h1{ text-shadow: 0 6px 30px rgba(168,64,255,0.08); }
-
-    /* neon button */
-    .neon-btn{
-      background: linear-gradient(90deg, rgba(var(--accent1),1), rgba(var(--accent2),1));
-      box-shadow: 0 6px 30px rgba(var(--accent1),0.16), 0 0 40px rgba(var(--accent2),0.08) inset;
-    }
-
-    /* subtle hover for textarea */
-    textarea:focus { outline: none; box-shadow: 0 6px 30px rgba(var(--accent1),0.06); border-color: rgba(255,255,255,0.08); }
-
-    /* small responsive tweaks */
-    @media (max-width:640px){
-      .container-pad{ padding-left:18px; padding-right:18px; }
-    }
+    body{ margin:0; background: var(--bg); color:#e8e8ff; font-family:Inter,system-ui,Arial; overflow-x:hidden; }
+    .bg-layer{ position:fixed; inset:0; pointer-events:none; z-index:0; }
+    .card{ background:linear-gradient(180deg,rgba(255,255,255,0.024),rgba(255,255,255,0.014)); border:1px solid rgba(255,255,255,0.06); backdrop-filter: blur(10px); box-shadow:0 14px 60px rgba(0,0,0,0.65); }
+    .neon{ background:linear-gradient(90deg, rgba(var(--a1),1), rgba(var(--a2),1)); box-shadow:0 16px 50px rgba(var(--a1),0.2); color:#fff; }
+    textarea:focus{ outline:none; border-color:rgba(255,255,255,0.12); box-shadow:0 10px 30px rgba(168,64,255,0.18); }
   </style>
 </head>
 <body>
-  <!-- canvas for particles -->
-  <canvas id="bgCanvas" class="bg-canvas"></canvas>
+  <!-- Живой фон -->
+  <canvas id="bg" class="bg-layer"></canvas>
 
-  <div class="max-w-3xl mx-auto container-pad py-24 px-8">
+  <div class="relative z-10 max-w-3xl mx-auto px-6 py-24">
     <header class="mb-8">
-      <h1 class="text-4xl font-extrabold tracking-tight">Neon <span style="color: rgb(168,64,255)">Checker</span></h1>
-      <p class="mt-2 text-slate-300">Автоматическая проверка аккаунта: безопасно, красиво и быстро.</p>
+      <h1 class="text-4xl font-extrabold tracking-tight">Neon <span style="color:rgb(168,64,255)">Checker</span></h1>
+      <p class="mt-2 text-slate-300">Проверь свой аккаунт быстро и безопасно.</p>
     </header>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="space-y-3 mb-4">
           {% for category, msg in messages %}
-            <div class="p-3 rounded glass {{ 'border-red-400 bg-red-900/20 text-red-200' if category=='danger' else 'border-yellow-400 bg-yellow-900/12 text-yellow-200' }}">{{ msg }}</div>
+            <div class="p-3 rounded card {{ 'border-red-400 bg-red-900/20 text-red-200' if category=='danger' else 'border-yellow-400 bg-yellow-900/12 text-yellow-200' }}">{{ msg }}</div>
           {% endfor %}
         </div>
       {% endif %}
     {% endwith %}
 
-    <form action="{{ url_for('check') }}" method="post" class="p-6 rounded-lg glass">
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-slate-200 mb-2">Куки / Токен</label>
-        <textarea name="cookie" rows="6" required class="w-full p-3 rounded bg-transparent border border-white/6 text-slate-100 placeholder-slate-400" placeholder="Вставь куки сюда..."></textarea>
-      </div>
+    <form action="{{ url_for('check') }}" method="post" class="p-6 rounded-lg card">
+      <label class="block text-sm font-medium text-slate-200 mb-2">Куки / Токен</label>
+      <textarea name="cookie" rows="6" required class="w-full p-3 rounded bg-transparent border border-white/10 text-slate-100 placeholder-slate-400" placeholder=".ROBLOSECURITY=..."></textarea>
 
-      <div class="flex items-center gap-3 mb-4">
-        <label class="flex items-center gap-2">
-          <input type="checkbox" name="owner_confirm" class="w-4 h-4 rounded border-white/20" />
-          <span class="text-sm text-slate-300">Подтверждаю, что аккаунт принадлежит мне или у меня есть разрешение.</span>
-        </label>
-      </div>
+      <label class="flex items-center gap-2 mt-4 mb-6">
+        <input type="checkbox" name="owner_confirm" class="w-4 h-4 rounded border-white/20" />
+        <span class="text-sm text-slate-300">Подтверждаю, что аккаунт мой или у меня есть разрешение владельца.</span>
+      </label>
 
       <div class="flex items-center justify-between">
-        <button type="submit" class="neon-btn text-white px-5 py-2 rounded-full font-semibold shadow transition-transform hover:-translate-y-0.5">Проверить</button>
-        <div class="text-right text-xs text-slate-400">
-          <div>Данные шифруются и не передаются третьим лицам.</div>
-        </div>
+        <button class="neon px-5 py-2 rounded-full font-semibold transition-transform hover:-translate-y-0.5">Проверить</button>
+        <div class="text-xs text-slate-400">Данные шифруются и не передаются третьим лицам.</div>
       </div>
     </form>
 
-    <footer class="mt-8 text-sm text-slate-400">
-      <p>Тестируй на своих аккаунтах. В будущем можно включить проверку по одноразовому коду в профиле.</p>
-    </footer>
+    <footer class="mt-8 text-sm text-slate-400">Совет: используй тестовый аккаунт для демонстрации.</footer>
   </div>
 
   <script>
-    // Simple animated particle canvas — lightweight, no external libs
-    (function(){
-      const canvas = document.getElementById('bgCanvas');
-      const ctx = canvas.getContext('2d');
-      let w = canvas.width = innerWidth;
-      let h = canvas.height = innerHeight;
-      const particles = [];
-      const colors = [
-        'rgba(168,64,255,0.12)',
-        'rgba(114,91,255,0.12)',
-        'rgba(64,220,255,0.08)'
-      ];
+    // Неоновая анимация: мягкие «облака» + частицы
+    (() => {
+      const c = document.getElementById('bg'), x = c.getContext('2d');
+      let W = c.width = innerWidth, H = c.height = innerHeight;
 
-      function rand(min,max){ return Math.random()*(max-min)+min; }
+      const blobs = Array.from({length: 6}).map(()=>({
+        x: Math.random()*W, y: Math.random()*H,
+        r: 200 + Math.random()*260,
+        vx: (Math.random()-0.5)*0.3, vy: (Math.random()-0.5)*0.25,
+        h: Math.random()<.5
+      }));
 
-      function Particle(){
-        this.x = rand(-0.2*w, 1.2*w);
-        this.y = rand(-0.2*h, 1.2*h);
-        this.r = rand(20,120);
-        this.vx = rand(-0.1,0.1);
-        this.vy = rand(-0.05,0.05);
-        this.color = colors[Math.floor(Math.random()*colors.length)];
-        this.alpha = rand(0.03,0.12);
-        this.phase = rand(0, Math.PI*2);
-      }
-      Particle.prototype.step = function(t){
-        this.x += this.vx + Math.sin(t*0.0004 + this.phase)*0.12;
-        this.y += this.vy + Math.cos(t*0.0003 + this.phase)*0.08;
-        if(this.x < -0.3*w || this.x > 1.3*w || this.y < -0.3*h || this.y > 1.3*h){
-          this.x = rand(-0.2*w, 1.2*w);
-          this.y = rand(-0.2*h, 1.2*h);
-        }
-      }
-      function init(){
-        particles.length = 0;
-        const count = Math.max(7, Math.floor((w*h)/120000)); // scale with viewport
-        for(let i=0;i<count;i++) particles.push(new Particle());
-      }
-      function draw(t){
-        ctx.clearRect(0,0,w,h);
-        for(let p of particles){
-          p.step(t);
-          const g = ctx.createRadialGradient(p.x, p.y, p.r*0.1, p.x, p.y, p.r);
-          g.addColorStop(0, p.color.replace('0.12','0.22'));
-          g.addColorStop(1, p.color.replace('0.12','0'));
-          ctx.globalAlpha = p.alpha;
-          ctx.fillStyle = g;
-          ctx.beginPath();
-          ctx.ellipse(p.x,p.y,p.r,p.r*0.7,0,0,Math.PI*2);
-          ctx.fill();
-        }
-        ctx.globalAlpha = 1;
+      const particles = Array.from({length: Math.max(50, Math.min(140, Math.floor(W*H/18000)))}).map(()=>({
+        x: Math.random()*W, y: Math.random()*H,
+        vx: (Math.random()-0.5)*0.4, vy:(Math.random()-0.5)*0.4,
+        a: 0.06 + Math.random()*0.12, s: 0.8 + Math.random()*2.2
+      }));
+
+      function draw(){
+        x.clearRect(0,0,W,H);
+
+        blobs.forEach(b=>{
+          b.x+=b.vx; b.y+=b.vy;
+          if(b.x<-200) b.x=W+200; if(b.x>W+200) b.x=-200;
+          if(b.y<-200) b.y=H+200; if(b.y>H+200) b.y=-200;
+          const g = x.createRadialGradient(b.x,b.y, b.r*0.1, b.x,b.y,b.r);
+          g.addColorStop(0, `rgba(168,64,255,${b.h?0.25:0.15})`);
+          g.addColorStop(1, 'rgba(0,0,0,0)');
+          x.fillStyle = g; x.fillRect(b.x-b.r, b.y-b.r, b.r*2, b.r*2);
+        });
+
+        x.globalCompositeOperation='lighter';
+        particles.forEach(p=>{
+          p.x+=p.vx; p.y+=p.vy;
+          if(p.x<0) p.x=W; if(p.x>W) p.x=0;
+          if(p.y<0) p.y=H; if(p.y>H) p.y=0;
+          x.fillStyle = 'rgba(255,255,255,'+p.a+')';
+          x.beginPath(); x.arc(p.x, p.y, p.s, 0, Math.PI*2); x.fill();
+        });
+        x.globalCompositeOperation='source-over';
+
         requestAnimationFrame(draw);
       }
-      addEventListener('resize', ()=>{ w=canvas.width=innerWidth; h=canvas.height=innerHeight; init(); });
-      init();
+      addEventListener('resize', ()=>{ W=c.width=innerWidth; H=c.height=innerHeight; });
       requestAnimationFrame(draw);
     })();
   </script>

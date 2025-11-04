@@ -1,4 +1,3 @@
-# meow_wrapper.py
 import traceback
 from typing import Dict
 from roblox_check import check_cookie as _check
